@@ -6,8 +6,8 @@ timestamp() {
 echo $(timestamp)
 
 #check ob auf GPU mit Hilfe von $HOST ?
-PWD='/home/vault/capm/sn0515/PhD/Th_U-Wire'
-DataOLD=$PWD/Data_MC
+PWD='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/'
+DataOLD=$PWD/Data/
 
 array=( $* )
 for((i=0; i<$#; i++)) ; do
@@ -29,11 +29,11 @@ else
 			echo "Model Folder (${PARENT}) does not exist" ; exit 1
 		fi
 	else
-		FolderOUT=$PWD/MonteCarlo/$(timestamp)
+		FolderOUT=$PWD/TrainingRuns/$(timestamp)
 	fi
 fi
 
-mkdir -p $FolderOUT && cp $PWD/script_*.py $FolderOUT && cp $PWD/Scripts/script_plot.py $FolderOUT
+mkdir -p $FolderOUT
 
 DataNEW=$DataOLD
 #if [[ ! -z $TMPDIR ]] && ( [[ $TEST != "true" ]] || [[ $PREPARE == "true" ]] ) ; then
@@ -46,9 +46,9 @@ DataNEW=$DataOLD
 
 echo
 if [[ $PREPARE == "true" ]] ; then
-	echo "(python $FolderOUT/script_train.py -in $DataNEW -out $FolderOUT ${@:1}) | tee $FolderOUT/log.dat"
+	echo "(python $FolderOUT/run_cnn.py -in $DataNEW -out $FolderOUT ${@:1}) | tee $FolderOUT/log.dat"
 else
-	(python $FolderOUT/script_train.py -in $DataNEW -out $FolderOUT ${@:1}) | tee $FolderOUT/log.dat
+	(python $FolderOUT/run_cnn.py -in $DataNEW -out $FolderOUT ${@:1}) | tee $FolderOUT/log.dat
 	echo $(timestamp)
 fi
 

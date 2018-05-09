@@ -3,7 +3,7 @@ import matplotlib as mpl
 mpl.use('PDF')
 import matplotlib.pyplot as plt
 import os
-import utilities.generator as gen
+from .utilities import *
 
 def main():
     folderIN = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/UniformGamma_ExpWFs_MC_SS/'
