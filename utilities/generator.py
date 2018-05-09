@@ -8,7 +8,7 @@ import h5py
 import random
 
 #------------- Function used for supplying images to the GPU -------------#
-def gen_batches_from_files(files, batchsize, class_type, f_size=None, yield_mc_info=False, swap_col=None):
+def gen_batches_from_files(files, batchsize, class_type=None, f_size=None, yield_mc_info=False, swap_col=None):
     """
     Generator that returns batches of images ('xs') and labels ('ys') from a h5 file.
     :param string filepath: Full filepath of the input h5 file, e.g. '/path/to/file/file.h5'.
@@ -26,14 +26,12 @@ def gen_batches_from_files(files, batchsize, class_type, f_size=None, yield_mc_i
     eventInfo = {}
     while 1:
         random.shuffle(files)  #  TODO maybe omit in future?
-        print files
         for filename in files:
-            print filename
             f = h5py.File(str(filename), "r")
             if f_size is None:
                 f_size = num_events([filename])
-                warnings.warn( 'f_size=None could produce unexpected results if the f_size used in fit_generator(steps=int(f_size / batchsize)) with epochs > 1 '
-                    'is not equal to the f_size of the true .h5 file. Should be ok if you use the tb_callback.')
+                # warnings.warn( 'f_size=None could produce unexpected results if the f_size used in fit_generator(steps=int(f_size / batchsize)) with epochs > 1 '
+                #     'is not equal to the f_size of the true .h5 file. Should be ok if you use the tb_callback.')
             else:
                 raise ValueError('The argument "f_size"=' + str(swap_col) + ' may have no effect. Check implementation.')
 
@@ -41,21 +39,19 @@ def gen_batches_from_files(files, batchsize, class_type, f_size=None, yield_mc_i
             # random.shuffle(lst)  #  TODO maybe omit in future?
 
             for i in lst:
-                print i, 'of', f_size
                 xs = f['wfs'][ i : i + batchsize ]
                 if swap_col is not None:
                     raise ValueError('The argument "swap_col"=' + str(swap_col) + ' is not valid.')
                 # filter the labels we don't want for now
                 for key in f.keys():
                     if key in ['wfs']: continue
-                    print key
                     eventInfo[key] = np.asarray(f[key][ i : i + batchsize ])
                 ys = encode_targets(eventInfo, batchsize, class_type)
 
                 yield (xs, ys) if yield_mc_info is False else (xs, ys) + (eventInfo, )
             f.close()  # this line of code is actually not reached if steps=f_size/batchsize
 
-def encode_targets(y_dict, batchsize, class_type):
+def encode_targets(y_dict, batchsize, class_type=None):
     """
     Encodes the labels (classes) of the images.
     :param dict y_dict: Dictionary that contains ALL event class information for the events of a batch.
@@ -63,7 +59,9 @@ def encode_targets(y_dict, batchsize, class_type):
     :return: ndarray(ndim=2) train_y: Array that contains the encoded class label information of the input events of a batch.
     """
 
-    if class_type == 'energy_and_position':
+    if class_type == None:
+        train_y = np.zeros(batchsize, dtype='float32')
+    elif class_type == 'energy_and_position':
         train_y = np.zeros((batchsize, 4), dtype='float32')
         train_y[:,0] = y_dict['MCEnergy'][:,0]  # energy
         train_y[:,1] = y_dict['MCPosX'][:,0]  # dir_x
@@ -83,12 +81,6 @@ def num_events(files):
         counter += f['wfs'].shape[0]
         f.close()
     return counter
-
-path = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/UniformGamma_ExpWFs_MC_SS/'
-file = [path + '0.hdf5', path + '1.hdf5', path + '2.hdf5']
-gen = gen_batches_from_files(file, 16, 'energy_and_position', f_size=None, yield_mc_info=False, swap_col=None)
-gen.next()
-
 
 #------------- Functions for preprocessing -------------#
 # def get_array_memsize(array):
