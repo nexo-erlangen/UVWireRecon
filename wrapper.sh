@@ -3,8 +3,12 @@
 timestamp() {
 	date +"%y%m%d-%H%M"
 }
+timestampSEC() {
+	date +"%y%m%d-%H%M-%S"
+}
+
 TIMESTAMP=$(timestamp)
-echo "Start time:   " ${TIMESTAMP}
+TIMESTAMPSEC=$(timestampSEC)
 
 #check ob auf GPU mit Hilfe von $HOST ?
 PWD=$VAULT/PhD/DeepLearning/UV-wire/
@@ -35,6 +39,10 @@ else
 			if [[ $SINGLE != "true" ]]
 			then
 				RUN=$PARENT/$TIMESTAMP/
+				if [ -d $FOLDERRUNS$PARENT/$TIMESTAMP/ ]
+				then
+					RUN=$PARENT/$TIMESTAMPSEC/
+				fi
 			else
 				RUN=$PARENT/
 			fi
@@ -43,11 +51,16 @@ else
 		fi
 	else
 		RUN=$TIMESTAMP/
+		if [ -d $FOLDERRUNS$TIMESTAMP ]
+		then
+			RUN=$TIMESTAMPSEC/
+		fi
 	fi
 fi
 
 mkdir -p $FOLDERRUNS/$RUN
 
+echo "Run Folder:   " $RUN
 echo
 
 if [[ $PREPARE == "true" ]] ; then
@@ -56,6 +69,6 @@ else
 	#echo "(python $CODEFOLDER/run_cnn.py --in $DATA --runs $FOLDERRUNS --out $RUN ${@:1}) | tee $FOLDERRUNS/$RUN/log.dat"
 	(python $CODEFOLDER/run_cnn.py --in $DATA --runs $FOLDERRUNS --out $RUN ${@:1}) | tee $FOLDERRUNS/$RUN/log.dat
 	echo
-	echo 'Start time:   ' ${TIMESTAMP}
+	echo "Run Folder:   " $RUN
 fi
 
