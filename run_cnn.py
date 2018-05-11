@@ -16,6 +16,7 @@ from models.shared_conv import *
 
 def main():
     args, files = parseInput()
+    exit()
 
     frac_train = {'unss': 0.80, 'unms': 0.00}
     frac_val   = {'unss': 0.20, 'unms': 0.00}
@@ -39,25 +40,19 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'a
                shuffle=(False, None), tb_logger=False):
     """
     Runs a convolutional neural network.
-    :param list(tuple) n_bins: Declares the number of bins for each dimension (x,y,z,t) in the train- and testfiles. Can contain multiple n_bins tuples.
+    :param class args: Contains parsed info about the run.
+    :param dict(list) files: Declares the number of bins for each dimension (x,y,z,t) in the train- and testfiles. Can contain multiple n_bins tuples.
                                Multiple n_bins tuples are currently only used for multi-input models with multiple input files per batch.
-    :param (int, str) class_type: Declares the number of output classes and a string identifier to specify the exact output classes.
+    :param str var_targets: Declares the number of output classes and a string identifier to specify the exact output classes.
                                   I.e. (2, 'muon-CC_to_elec-CC')
     :param str nn_arch: Architecture of the neural network. Currently, only 'VGG' or 'WRN' are available.
     :param int batchsize: Batchsize that should be used for the cnn.
-    :param int epoch: Declares if a previously trained model or a new model (=0) should be loaded.
+    :param (int/int) epoch: Declares if a previously trained model or a new model (=0) should be loaded.
     :param (int/str) n_gpu: Number of gpu's that the model should be parallelized to [0] and the multi-gpu mode (e.g. 'avolkov').
     :param str mode: Specifies what the function should do - train & test a model or evaluate a 'finished' model?
                      Currently, there are two modes available: 'train' & 'eval'.
-    :param None/str swap_4d_channels: For 4D data input (3.5D models). Specifies, if the channels for the 3.5D net should be swapped.
-                                      Currently available: None -> XYZ-T ; 'yzt-x' -> YZT-X
-    :param bool use_scratch_ssd: Declares if the input files should be copied to the node-local SSD scratch before executing the cnn.
-    :param bool zero_center: Declares if the input images ('xs') should be zero-centered before training.
     :param (bool, None/int) shuffle: Declares if the training data should be shuffled before the next training epoch.
     :param bool tb_logger: Declares if a tb_callback should be used during training (takes longer to train due to overhead!).
-    :param str str_ident: Optional str identifier that gets appended to the modelname. Useful when training models which would have the same modelname.
-                          Also used for defining models and projections!
-    :param (str, str) loss_opt: tuple that contains 1) the loss and 2) the metric during training.
     """
     print epoch
     if epoch[0] == 0:
@@ -234,20 +229,14 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     Trains a model based on the Keras fit_generator method.
     If a TensorBoard callback is wished, validation data has to be passed to the fit_generator method.
     For this purpose, the first file of the test_files is used.
-    :param ks.model.Model/Sequential model: Keras model of a neural network.
-    :param str modelname: Name of the model.
-    :param str f: full filepath of the file that should be used for training.
-    :param int f_size: number of images contained in f.
-    :param int file_no: if the full data is split into multiple files, this param indicates the file number.
-    :param list test_files: list of tuples that contains the testfiles and their number of rows for the tb_callback.
+    :param class args: Contains parsed info about the run.
+    :param ks.model.Model model: Keras model of a neural network.
+    :param dict(list) files: dict containing filepaths of the files that should be used for training/validation/testing.
     :param int batchsize: Batchsize that is used in the fit_generator method.
-    :param list(tuple) n_bins: Number of bins for each dimension (x,y,z,t) in both the train- and test_files. Can contain multiple n_bins tuples.
-    :param (int, str) class_type: Tuple with the number of output classes and a string identifier to specify the output classes.
+    :param str var_targets: Tuple with the number of output classes and a string identifier to specify the output classes.
     :param ndarray xs_mean: mean_image of the x (train-) dataset used for zero-centering the test data.
     :param int epoch: Epoch of the model if it has been trained before.
     :param (bool, None/int) shuffle: Declares if the training data should be shuffled before the next training epoch.
-    :param None/int swap_4d_channels: For 3.5D, param for the gen to specify, if the default channel (t) should be swapped with another dim.
-    :param str str_ident: string identifier for the projection type / model input that is parsed to the image generator. Needed for some specific models.
     :param None/int n_events: For testing purposes if not the whole .h5 file should be used for training.
     :param bool tb_logger: Declares if a tb_callback during fit_generator should be used (takes long time to save the tb_log!).
     """
@@ -267,8 +256,8 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
 
     train_steps_per_epoch = int(getNumEvents(files['train']) / batchsize)
 
-    # logger = BatchLevelPerformanceLogger(display=100, steps_per_epoch=train_steps_per_epoch, epoch=epoch, folderOUT=args.folderOUT)
-    # callbacks.append(logger)
+    logger = BatchLevelPerformanceLogger(display=100, steps_per_epoch=train_steps_per_epoch, epoch=epoch, folderOUT=args.folderOUT)
+    callbacks.append(logger)
 
     print 'Training in epoch', epoch, 'on events:', train_steps_per_epoch*batchsize
 
@@ -280,8 +269,8 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
         verbose=1,
         max_queue_size=10,
         validation_data=validation_data,
-        validation_steps=validation_steps)
-        # callbacks=callbacks)
+        validation_steps=validation_steps,
+        callbacks=callbacks)
     model.save_weights(args.folderOUT + "models/weights_epoch_" + str(epoch) + ".hdf5")
 
     return history
@@ -289,16 +278,12 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
 def evaluate_model(args, model, files, batchsize, var_targets, epoch, n_events=None):
     """
     Evaluates a model with validation data based on the Keras evaluate_generator method.
-    :param ks.model.Model/Sequential model: Keras model (trained) of a neural network.
-    :param str modelname: Name of the model.
-    :param list test_files: list of tuples that contains the testfiles and their number of rows.
+    :param class args: Contains parsed info about the run.
+    :param ks.model.Model model: Keras model (trained) of a neural network.
+    :param dict(list) files: dict of lists that contain the validation files.
     :param int batchsize: Batchsize that is used in the evaluate_generator method.
-    :param list(tuple) n_bins: Number of bins for each dimension (x,y,z,t) in the test_files. Can contain multiple n_bins tuples.
-    :param (int, str) class_type: Tuple with the number of output classes and a string identifier to specify the output classes.
-    :param ndarray xs_mean: mean_image of the x (train-) dataset used for zero-centering the test data.
+    :param str var_targets: String identifier to specify the output classes.
     :param int epoch: Current epoch of the training.
-    :param None/int swap_4d_channels: For 3.5D, param for the gen to specify, if the default channel (t) should be swapped with another dim.
-    :param str str_ident: string identifier for the projection type / model input that is parsed to the image generator. Needed for some specific models.
     :param None/int n_events: For testing purposes if not the whole .h5 file should be used for evaluating.
     """
 

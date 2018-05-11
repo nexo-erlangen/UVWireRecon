@@ -33,9 +33,10 @@ def parseInput():
                                                  'Script that runs a DNN.',
                                      formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('-o', '--out', dest='folderOUT', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/Dummy/', help='folderOUT Path')
+    parser.add_argument('-o', '--out', dest='folderOUT', type=str, default='Dummy/', help='folderOUT Path')
     parser.add_argument('-i', '--in', dest='folderIN', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/', help='folderIN Path')
-    parser.add_argument('-m', '--model', dest='folderMODEL', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/Dummy/', help='folderMODEL Path')
+    parser.add_argument('-r', '--runs', dest='folderRUNS', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/', help='folderRUNS Path')
+    parser.add_argument('-m', '--model', dest='folderMODEL', type=str, default='Dummy/', help='folderMODEL Path')
     parser.add_argument('-t', '--targets', type=str, dest='var_targets', default='energy_and_position', choices=['energy_and_position'], help='Targets to train the network against')
     parser.add_argument('-a', '--arch', type=str, dest='cnn_arch', default='DCNN', choices=['DCNN', 'ResNet', 'Inception'], help='Choose network architecture')
     parser.add_argument('-g', '--gpu', type=int, dest='num_gpu', default=1, choices=[1, 2, 3, 4], help='Number of GPUs')
@@ -59,17 +60,17 @@ def parseInput():
         'unms': "UniformGamma_ExpWFs_MC_SS+MS/"}
 
     for source in args.sources:
-        folderIN[source] = os.path.join(args.folderIN, endings[source])
+        folderIN[source] = os.path.join(os.path.join(args.folderIN,''), endings[source])
         files[source] = [os.path.join(folderIN[source], f) for f in os.listdir(folderIN[source]) if os.path.isfile(os.path.join(folderIN[source], f))]
         print 'Input  Folder: (', source, ')\t', folderIN[source]
-    args.folderOUT = os.path.join(args.folderOUT,'')
-    args.folderMODEL = os.path.join(args.folderMODEL,'')
+    args.folderOUT = os.path.join(os.path.join(os.path.join(args.folderRUNS,''),args.folderOUT),'')
+    args.folderMODEL = os.path.join(os.path.join(os.path.join(args.folderRUNS,''),args.folderMODEL),'')
     args.folderIN = folderIN
 
     if args.resume == True:
-        if type(args.num_weights) == int: args.nb_weights = str(args.nb_weights).zfill(3)
+        if type(args.num_weights) == int: args.num_weights = str(args.num_weights).zfill(3)
     else:
-        args.nb_weights = 0
+        args.num_weights = 0
     if not os.path.exists(args.folderOUT+'models'): os.makedirs(args.folderOUT+'models')
 
     print 'Output Folder:\t\t'  , args.folderOUT

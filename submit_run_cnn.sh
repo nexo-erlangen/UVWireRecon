@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #
 # allocate 1 nodes (4 CPUs) for 3 hours
-#PBS -l nodes=1:ppn=4:gtx1080ti,walltime=24:00:00
+#PBS -l nodes=1:ppn=4:gtx1080ti,walltime=00:10:00
 #
 #Mail bei abbruch
 #PBS -m a
@@ -14,7 +14,7 @@
 # first non-empty non-comment line ends PBS options
 
 # jobs always start in $HOME -
-source $HPC/.bash_profile
+#source $HPC/.bash_profile
 
 CodeFolder=$HPC/UVWireRecon/
 cd ${CodeFolder}
@@ -29,7 +29,7 @@ source activate tensorflow
 module use -a /home/vault/capn/shared/apps/U16/modules
 
 echo "$CodeFolder/wrapper.sh $config"
-bash wrapper.sh $config
+#bash wrapper.sh $config
 
 wait
 
