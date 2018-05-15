@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
+import sys
+import os
+
 # ----------------------------------------------------------
 # Program Functions
 # ----------------------------------------------------------
-def make_organize():
+def parseInput():
     """
         Parses the user input for running the CNN.
         There are three available input modes:
@@ -25,126 +28,82 @@ def make_organize():
     """
 
     import argparse
+
     parser = argparse.ArgumentParser(description='E.g. < python run_cnn.py ..... > \n'
                                                  'Script that runs a DNN.',
                                      formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('-out', dest='folderOUT', default='/home/vault/capm/sn0515/PhD/Th_U-Wire/MonteCarlo/Dummy', help='folderOUT Path')
-    parser.add_argument('-in', dest='folderIN', default='/home/vault/capm/sn0515/PhD/Th_U-Wire/Data_MC', help='folderIN Path')
-    parser.add_argument('-model', dest='folderMODEL', default='/home/vault/capm/sn0515/PhD/Th_U-Wire/MonteCarlo/Dummy', help='folderMODEL Path')
-    parser.add_argument('-gpu', type=int, dest='nb_GPU', default=1, choices=[1, 2, 3, 4], help='nb of GPU')
-    parser.add_argument('-epoch', type=int, dest='nb_epoch', default=1, help='nb Epochs')
-    parser.add_argument('-batch', type=int, dest='nb_batch', default=16, help='Batch Size')
+    parser.add_argument('-o', '--out', dest='folderOUT', type=str, default='Dummy/', help='folderOUT Path')
+    parser.add_argument('-i', '--in', dest='folderIN', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/', help='folderIN Path')
+    parser.add_argument('-r', '--runs', dest='folderRUNS', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/', help='folderRUNS Path')
+    parser.add_argument('-m', '--model', dest='folderMODEL', type=str, default='Dummy/', help='folderMODEL Path')
+    parser.add_argument('-t', '--targets', type=str, dest='var_targets', default='energy_and_position', choices=['energy_and_position'], help='Targets to train the network against')
+    parser.add_argument('-a', '--arch', type=str, dest='cnn_arch', default='DCNN', choices=['DCNN', 'ResNet', 'Inception'], help='Choose network architecture')
+    parser.add_argument('-g', '--gpu', type=int, dest='num_gpu', default=1, choices=[1, 2, 3, 4], help='Number of GPUs')
+    parser.add_argument('-e', '--epoch', type=int, dest='num_epoch', default=1, help='nb Epochs')
+    parser.add_argument('-b', '--batch', type=int, dest='batchsize', default=16, help='Batch Size')
     # parser.add_argument('-multi', dest='multiplicity', default='SS', help='Choose Event Multiplicity (SS / SS+MS)')
-    parser.add_argument('-weights', dest='nb_weights', default='final', help='Load weights from Epoch')
+    parser.add_argument('-w', '--weights', dest='num_weights', default=0, help='Load weights from Epoch')
     # parser.add_argument('-position', dest='position', default=['S5'], choices=['S2', 'S5', 'S8'], help='sources position')
     parser.add_argument('--resume', dest='resume', action='store_true', help='Resume Training')
     parser.add_argument('--test', dest='test', action='store_true', help='Only reduced data')
     args, unknown = parser.parse_known_args()
 
-    folderIN, files = {}, {}
-    args.sources = ["thss", "thms", "coss", "coms", "rass", "rams", "gass", "gams", "unss", 'unms']
-    # args.sources = ["thss", "thms", "coss", "rass", "gass", "unss", 'unms']
-    args.label = {
-        'thss': "Th228-SS",
-        'rass': "Ra226-SS",
-        'rams': "Ra226-SS+MS",
-        'coss': "Co60-SS",
-        'coms': "Co60-SS+MS",
-        'gass': "Gamma-SS",
-        'gams': "Gamma-SS+MS",
-        'unss': "Uniform-SS",
-        'thms': "Th228-SS+MS",
-        'unms': "Uniform-SS+MS"}
-    endings = {
-        'thss': "Th228_Wfs_SS_S5_MC/",
-        'thms': "Th228_Wfs_SS+MS_S5_MC/",
-        'rass': "Ra226_Wfs_SS_S5_MC/",
-        'rams': "Ra226_Wfs_SS+MS_S5_MC/",
-        'coss': "Co60_Wfs_SS_S5_MC/",
-        'coms': "Co60_Wfs_SS+MS_S5_MC/",
-        'gass': "Gamma_Wfs_SS_S5_MC/",
-        'gams': "Gamma_Wfs_SS+MS_S5_MC/",
-        'unss': "Uniform_Wfs_SS_S5_MC/",
-        'unms': "Uniform_Wfs_SS+MS_S5_MC/"}
-
-    for source in args.sources:
-        folderIN[source] = os.path.join(args.folderIN, endings[source])
-        files[source] = [os.path.join(folderIN[source], f) for f in os.listdir(folderIN[source]) if os.path.isfile(os.path.join(folderIN[source], f))]
-        print 'Input  Folder: (', source, ')\t', folderIN[source]
-    args.folderOUT = os.path.join(args.folderOUT,'')
-    args.folderMODEL = os.path.join(args.folderMODEL,'')
-    args.folderIN = folderIN
-
-    if args.nb_weights != 'final': args.nb_weights=str(args.nb_weights).zfill(3)
-    if not os.path.exists(args.folderOUT+'models'):
-        os.makedirs(args.folderOUT+'models')
-
-    print 'Output Folder:\t\t'  , args.folderOUT
-    if args.resume:
-        print 'Model Folder:\t\t', args.folderMODEL
-    print 'Number of GPU:\t\t', args.nb_GPU
-    print 'Number of Epoch:\t', args.nb_epoch
-    print 'BatchSize:\t\t', args.nb_batch, '\n'
-    return args, files
-
-
-    parser = argparse.ArgumentParser(description='E.g. < python run_cnn.py train_filepath test_filepath [...] > \n'
-                                                 'Script that runs a CNN. \n'
-                                                 'The input arguments are either single files for train- and testdata or \n'
-                                                 'a .list file that contains the filepaths of the train-/testdata.',
-                                     formatter_class=argparse.RawTextHelpFormatter)
-
-    parser.add_argument('train_file', metavar='train_file', type=str, nargs='?', help='the filepath of the traindata file.')
-    parser.add_argument('test_file', metavar='test_file', type=str, nargs='?', help='the filepath of the testdata file.')
-    parser.add_argument('-l', '--list', dest='listfile_train_and_test', type=str, nargs=2,
-                        help='filepath of a .list file that contains all .h5 files that should be used for training/testing.')
-    parser.add_argument('-m', '--multiple_files', dest='listfile_multiple', type=str, nargs=1,
-                        help='filepath of a .list file that which contains multiple input files '
-                             ' that should be used for training/testing in double/triple/... input models that need multiple input files per batch. \n'
-                             'The structure of the .list file should be as follows: \n '
-                             'f_1_train \n, f_1_test \n, f_2_train \n, f_2_test \n, ..')
-
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
 
-    args = parser.parse_args()
-    multiple_inputs = False
+    folderIN, files = {}, {}
+    args.sources = ["unss", 'unms']
+    endings = {
+        'unss': "UniformGamma_ExpWFs_MC_SS/",
+        'unms': "UniformGamma_ExpWFs_MC_SS+MS/"}
 
-    if args.listfile_train_and_test:
-        train_files, test_files = [], []
+    for source in args.sources:
+        folderIN[source] = os.path.join(os.path.join(args.folderIN,''), endings[source])
+        files[source] = [os.path.join(folderIN[source], f) for f in os.listdir(folderIN[source]) if os.path.isfile(os.path.join(folderIN[source], f))]
+        print 'Input  Folder: (', source, ')\t', folderIN[source]
+    args.folderOUT = os.path.join(os.path.join(os.path.join(args.folderRUNS,''),args.folderOUT),'')
+    args.folderMODEL = os.path.join(os.path.join(os.path.join(args.folderRUNS,''),args.folderMODEL),'')
+    args.folderIN = folderIN
 
-        for line in open(args.listfile_train_and_test[0]):
-            line = line.rstrip('\n')
-            train_files.append(([line], h5_get_number_of_rows(line)))
-
-        for line in open(args.listfile_train_and_test[1]):
-            line = line.rstrip('\n')
-            test_files.append(([line], h5_get_number_of_rows(line)))
-
-    elif args.listfile_multiple:
-        multiple_inputs = True
-
-        train_files, test_files = [], []
-        train_files_temp, test_files_temp = [], []
-
-        for i, line in enumerate(open(args.listfile_multiple[0])):
-            line = line.rstrip('\n')
-            if i % 2 == 0: # even, train_file
-                train_files_temp.append(line)
-            else: # odd, test_file
-                test_files_temp.append(line)
-
-        n_rows_train, n_rows_test = h5_get_number_of_rows(train_files_temp[0]), h5_get_number_of_rows(test_files_temp[0])
-        train_files.append((train_files_temp, n_rows_train))
-        test_files.append((test_files_temp, n_rows_test))
-
+    if args.resume == True:
+        if type(args.num_weights) == int: args.num_weights = str(args.num_weights).zfill(3)
     else:
-        train_files = [([args.train_file], h5_get_number_of_rows(args.train_file))]
-        test_files = [([args.test_file], h5_get_number_of_rows(args.test_file))]
+        args.num_weights = 0
+    if not os.path.exists(args.folderOUT+'models'): os.makedirs(args.folderOUT+'models')
 
-    if use_scratch_ssd is True:
-        train_files, test_files = use_node_local_ssd_for_input(train_files, test_files, multiple_inputs=multiple_inputs)
+    print 'Output Folder:\t\t'  , args.folderOUT
+    if args.resume: print 'Model Folder:\t\t', args.folderMODEL
+    print 'Number of GPU:\t\t', args.num_gpu
+    print 'Number of Epoch:\t', args.num_epoch
+    print 'BatchSize:\t\t', args.batchsize, '\n'
 
-    return train_files, test_files
+    return args, files
+
+def splitFiles(args, files, frac_train, frac_val):
+    import cPickle as pickle
+    if args.resume:
+        os.system("cp %s %s" % (args.folderMODEL + "splitted_files.p", args.folderOUT + "splitted_files.p"))
+        print 'load splitted files from %s' % (args.folderMODEL + "splitted_files.p")
+        return pickle.load(open(args.folderOUT + "splitted_files.p", "rb"))
+    else:
+        import random
+        splitted_files= {'train': {}, 'val': {}, 'test': {}}
+        print "Source\tTotal\tTrain\tValid\tTest"
+        for source in args.sources:
+            if (frac_train[source] + frac_val[source]) > 1.0 : raise ValueError('check file fractions!')
+            num_train = int(round(len(files[source]) * frac_train[source]))
+            num_val   = int(round(len(files[source]) * frac_val[source]))
+            random.shuffle(files[source])
+            if not args.test:
+                splitted_files['train'][source] = files[source][0 : num_train]
+                splitted_files['val'][source]   = files[source][num_train : num_train + num_val]
+                splitted_files['test'][source]  = files[source][num_train + num_val : ]
+            else:
+                splitted_files['val'][source]   = files[source][0:1]
+                splitted_files['test'][source]  = files[source][1:2]
+                splitted_files['train'][source] = files[source][2:3]
+            print "%s\t%i\t%i\t%i\t%i" % (source, len(files[source]), len(splitted_files['train'][source]), len(splitted_files['val'][source]), len(splitted_files['test'][source]))
+        pickle.dump(splitted_files, open(args.folderOUT + "splitted_files.p", "wb"))
+        return splitted_files

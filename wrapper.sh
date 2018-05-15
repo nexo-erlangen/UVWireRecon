@@ -3,11 +3,18 @@
 timestamp() {
 	date +"%y%m%d-%H%M"
 }
-echo $(timestamp)
+timestampSEC() {
+	date +"%y%m%d-%H%M-%S"
+}
+
+TIMESTAMP=$(timestamp)
+TIMESTAMPSEC=$(timestampSEC)
 
 #check ob auf GPU mit Hilfe von $HOST ?
-PWD='/home/vault/capm/sn0515/PhD/Th_U-Wire'
-DataOLD=$PWD/Data_MC
+PWD=$VAULT/PhD/DeepLearning/UV-wire/
+DATA=$PWD/Data/
+FOLDERRUNS=$PWD/TrainingRuns/
+CODEFOLDER=$HPC/UVWireRecon/
 
 array=( $* )
 for((i=0; i<$#; i++)) ; do
@@ -15,43 +22,53 @@ for((i=0; i<$#; i++)) ; do
 		--test) TEST="true";;
 		--prepare) PREPARE="true";;
 		--resume) RESUME="true";;
-		-model) PARENT=${array[$i+1]};;
+		--model) PARENT=${array[$i+1]};;
+		-m) PARENT=${array[$i+1]};;
+		--single) SINGLE="true";;
+		-s) SINGLE="true";;
 	esac
 done 
 
 if [[ $TEST == "true" ]] ||  [[ $PREPARE == "true" ]] ; then
-	FolderOUT=$PWD/MonteCarlo/Dummy
+	RUN=Dummy/
 else
-	if [[ $RESUME=="true" ]] && [[ ! -z $PARENT ]] ; then
-		if [ -d $PARENT ] ; then
-			FolderOUT=${PARENT}$(timestamp)
+	if [[ $RESUME=="true" ]] && [[ ! -z $FOLDERRUNS$PARENT ]]
+	then
+		if [ -d $FOLDERRUNS$PARENT ]
+		then
+			if [[ $SINGLE != "true" ]]
+			then
+				RUN=$PARENT/$TIMESTAMP/
+				if [ -d $FOLDERRUNS$PARENT/$TIMESTAMP/ ]
+				then
+					RUN=$PARENT/$TIMESTAMPSEC/
+				fi
+			else
+				RUN=$PARENT/
+			fi
 		else
 			echo "Model Folder (${PARENT}) does not exist" ; exit 1
 		fi
 	else
-		FolderOUT=$PWD/MonteCarlo/$(timestamp)
+		RUN=$TIMESTAMP/
+		if [ -d $FOLDERRUNS$TIMESTAMP ]
+		then
+			RUN=$TIMESTAMPSEC/
+		fi
 	fi
 fi
 
-mkdir -p $FolderOUT && cp $PWD/script_*.py $FolderOUT && cp $PWD/Scripts/script_plot.py $FolderOUT
+mkdir -p $FOLDERRUNS/$RUN
 
-DataNEW=$DataOLD
-#if [[ ! -z $TMPDIR ]] && ( [[ $TEST != "true" ]] || [[ $PREPARE == "true" ]] ) ; then
-#	DataNEW=$TMPDIR/data
-#	mkdir -p $DataNEW && cp -ru $DataOLD/*[$COPYONLY]* $DataNEW
-#else
-#	DataNEW=$DataOLD
-#	echo "\$TMPDIR is not defined/used. Getting Files from ${DataOLD}"
-#fi
-
+echo "Run Folder:   " $RUN
 echo
+
 if [[ $PREPARE == "true" ]] ; then
-	echo "(python $FolderOUT/script_train.py -in $DataNEW -out $FolderOUT ${@:1}) | tee $FolderOUT/log.dat"
+	echo "(python $CODEFOLDER/run_cnn.py --in $DATA --runs $FOLDERRUNS --out $RUN ${@:1}) | tee $FOLDERRUNS/$RUN/log.dat"
 else
-	(python $FolderOUT/script_train.py -in $DataNEW -out $FolderOUT ${@:1}) | tee $FolderOUT/log.dat
-	echo $(timestamp)
+	#echo "(python $CODEFOLDER/run_cnn.py --in $DATA --runs $FOLDERRUNS --out $RUN ${@:1}) | tee $FOLDERRUNS/$RUN/log.dat"
+	(python $CODEFOLDER/run_cnn.py --in $DATA --runs $FOLDERRUNS --out $RUN ${@:1}) | tee $FOLDERRUNS/$RUN/log.dat
+	echo
+	echo "Run Folder:   " $RUN
 fi
 
-if [[ ! -z $TMPDIR ]] && [[ $TEST != "true" ]] && [[ $PREPARE != "true" ]] ; then
-	echo "(rm -r $TMPDIR/data)"
-fi

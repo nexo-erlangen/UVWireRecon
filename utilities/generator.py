@@ -8,7 +8,7 @@ import h5py
 import random
 
 #------------- Function used for supplying images to the GPU -------------#
-def gen_batches_from_files(files, batchsize, class_type=None, f_size=None, yield_mc_info=False, swap_col=None):
+def generate_batches_from_files(files, batchsize, class_type=None, f_size=None, yield_mc_info=False):
     """
     Generator that returns batches of images ('xs') and labels ('ys') from a h5 file.
     :param string filepath: Full filepath of the input h5 file, e.g. '/path/to/file/file.h5'.
@@ -23,32 +23,34 @@ def gen_batches_from_files(files, batchsize, class_type=None, f_size=None, yield
                           Currently available: 'yzt-x' -> [3,1,2,0] from [0,1,2,3]
     :return: tuple output: Yields a tuple which contains a full batch of images and labels (+ mc_info if yield_mc_info=True).
     """
+
+    if isinstance(files, list): pass
+    elif isinstance(files, basestring): files = [files]
+    elif isinstance(files, dict): files = reduce(lambda x, y: x + y, files.values())
+    else: raise TypeError('passed variabel need to be list/np.array/str/dict[dict]')
+
     eventInfo = {}
     while 1:
-        random.shuffle(files)  #  TODO maybe omit in future?
+        random.shuffle(files)  # TODO maybe omit in future? # TODO shuffle events between files
         for filename in files:
             f = h5py.File(str(filename), "r")
-            if f_size is None:
-                f_size = num_events([filename])
+            if f_size is None: f_size = getNumEvents(filename)
                 # warnings.warn( 'f_size=None could produce unexpected results if the f_size used in fit_generator(steps=int(f_size / batchsize)) with epochs > 1 '
                 #     'is not equal to the f_size of the true .h5 file. Should be ok if you use the tb_callback.')
-            else:
-                raise ValueError('The argument "f_size"=' + str(swap_col) + ' may have no effect. Check implementation.')
 
             lst = np.arange(0, f_size, batchsize)  #  TODO maybe omit in future?
             # random.shuffle(lst)  #  TODO maybe omit in future?
 
             for i in lst:
                 xs = f['wfs'][ i : i + batchsize ]
-                if swap_col is not None:
-                    raise ValueError('The argument "swap_col"=' + str(swap_col) + ' is not valid.')
+                xs = np.swapaxes(xs, 0, 1)
+                xs = np.swapaxes(xs, 2, 3)
                 # filter the labels we don't want for now
                 for key in f.keys():
                     if key in ['wfs']: continue
                     eventInfo[key] = np.asarray(f[key][ i : i + batchsize ])
                 ys = encode_targets(eventInfo, batchsize, class_type)
-
-                yield (xs, ys) if yield_mc_info is False else (xs, ys) + (eventInfo, )
+                yield (list(xs), ys) if yield_mc_info is False else (xs, ys) + (eventInfo, )
             f.close()  # this line of code is actually not reached if steps=f_size/batchsize
 
 def encode_targets(y_dict, batchsize, class_type=None):
@@ -74,7 +76,11 @@ def encode_targets(y_dict, batchsize, class_type=None):
 
 #------------- Functions used for supplying images to the GPU -------------#
 
-def num_events(files):
+def getNumEvents(files):
+    if isinstance(files, basestring): files = [files]
+    elif isinstance(files, dict): files = reduce(lambda x,y: x+y,files.values())
+    else: raise TypeError('passed variabel need to be list/np.array/str/dict[dict]')
+
     counter = 0
     for filename in files:
         f = h5py.File(str(filename), 'r')
@@ -98,72 +104,3 @@ def num_events(files):
 #
 #------------- Functions for preprocessing -------------#
 
-
-#------------- Classes -------------#
-#
-# class TensorBoardWrapper(ks.callbacks.TensorBoard):
-#     """Up to now (05.10.17), Keras doesn't accept TensorBoard callbacks with validation data that is fed by a generator.
-#      Supplying the validation data is needed for the histogram_freq > 1 argument in the TB callback.
-#      Without a workaround, only scalar values (e.g. loss, accuracy) and the computational graph of the model can be saved.
-#
-#      This class acts as a Wrapper for the ks.callbacks.TensorBoard class in such a way,
-#      that the whole validation data is put into a single array by using the generator.
-#      Then, the single array is used in the validation steps. This workaround is experimental!"""
-#     def __init__(self, batch_gen, nb_steps, **kwargs):
-#         super(TensorBoardWrapper, self).__init__(**kwargs)
-#         self.batch_gen = batch_gen # The generator.
-#         self.nb_steps = nb_steps   # Number of times to call next() on the generator.
-#
-#     def on_epoch_end(self, epoch, logs):
-#         # Fill in the `validation_data` property.
-#         # After it's filled in, the regular on_epoch_end method has access to the validation_data.
-#         imgs, tags = None, None
-#         for s in xrange(self.nb_steps):
-#             ib, tb = next(self.batch_gen)
-#             if imgs is None and tags is None:
-#                 imgs = np.zeros(((self.nb_steps * ib.shape[0],) + ib.shape[1:]), dtype=np.float32)
-#                 tags = np.zeros(((self.nb_steps * tb.shape[0],) + tb.shape[1:]), dtype=np.uint8)
-#             imgs[s * ib.shape[0]:(s + 1) * ib.shape[0]] = ib
-#             tags[s * tb.shape[0]:(s + 1) * tb.shape[0]] = tb
-#         self.validation_data = [imgs, tags, np.ones(imgs.shape[0]), 0.0]
-#         return super(TensorBoardWrapper, self).on_epoch_end(epoch, logs)
-#
-#
-# class BatchLevelPerformanceLogger(ks.callbacks.Callback):
-#     # Gibt loss aus über alle :display batches, gemittelt über die letzten :display batches
-#     def __init__(self, display, modelname, steps_per_epoch, epoch):
-#         ks.callbacks.Callback.__init__(self)
-#         self.seen = 0
-#         self.display = display
-#         self.averageLoss = 0
-#         self.averageAcc = 0
-#         self.logfile_train_fname = 'models/trained/perf_plots/log_train_' + modelname + '.txt'
-#         self.logfile_train = None
-#         self.steps_per_epoch = steps_per_epoch
-#         self.epoch = epoch
-#         self.loglist = []
-#
-#     def on_batch_end(self, batch, logs={}):
-#         self.seen += 1
-#         self.averageLoss += logs.get('loss')
-#         self.averageAcc += logs.get("acc")
-#         if self.seen % self.display == 0:
-#             averaged_loss = self.averageLoss / self.display
-#             averaged_acc = self.averageAcc / self.display
-#             batchnumber_float = (self.seen - self.display / 2.) / float(self.steps_per_epoch) + self.epoch - 1  # start from zero
-#             self.loglist.append('\n{0}\t{1}\t{2}\t{3}'.format(self.seen, batchnumber_float, averaged_loss, averaged_acc))
-#             self.averageLoss = 0
-#             self.averageAcc = 0
-#
-#     def on_epoch_end(self, batch, logs={}):
-#         self.logfile_train = open(self.logfile_train_fname, 'a+')
-#         if os.stat(self.logfile_train_fname).st_size == 0: self.logfile_train.write("#Batch\t#Batch_float\tLoss\tAccuracy")
-#
-#         for batch_statistics in self.loglist: # only write finished epochs to the .txt
-#             self.logfile_train.write(batch_statistics)
-#
-#         self.logfile_train.flush()
-#         os.fsync(self.logfile_train.fileno())
-#         self.logfile_train.close()
-#
-#------------- Classes -------------#
