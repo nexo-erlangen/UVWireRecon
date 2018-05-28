@@ -76,10 +76,7 @@ def encode_targets(y_dict, batchsize, class_type=None):
         train_y[:,3] = y_dict['MCTime'][:,0]  # time (to calculate dir_z)
     else:
         raise ValueError('Class type ' + str(class_type) + ' not supported!')
-
     return train_y
-
-#------------- Functions used for supplying images to the GPU -------------#
 
 def getNumEvents(files):
     if isinstance(files, list): pass
@@ -94,19 +91,20 @@ def getNumEvents(files):
         f.close()
     return counter
 
-#------------- Functions for preprocessing -------------#
-# def get_array_memsize(array):
-#     """
-#     Calculates the approximate memory size of an array.
-#     :param ndarray array: an array.
-#     :return: float memsize: size of the array in bytes.
-#     """
-#     shape = array.shape
-#     n_numbers = reduce(lambda x, y: x*y, shape) # number of entries in an array
-#     precision = 8 # Precision of each entry, typically uint8 for xs datasets
-#     memsize = (n_numbers * precision) / float(8) # in bytes
-#
-#     return memsize
-#
-#------------- Functions for preprocessing -------------#
+def get_array_memsize(array, unit='KB'):
+    """
+    Calculates the approximate memory size of an array.
+    :param ndarray array: an array.
+    :param string unit: output unit of memsize.
+    :return: float memsize: size of the array given in unit.
+    """
+    units = {'B': 0., 'KB': 1., 'MB': 2., 'GB':3.}
+    if isinstance(array, list):
+        array = np.asarray(array)
+
+    shape = array.shape
+    n_numbers = reduce(lambda x, y: x*y, shape) # number of entries in an array
+    precision = array.dtype.itemsize # Precision of each entry in bytes
+    memsize = (n_numbers * precision) # in bytes
+    return memsize/1024**units[unit]
 
