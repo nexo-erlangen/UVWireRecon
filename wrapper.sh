@@ -12,8 +12,8 @@ TIMESTAMPSEC=$(timestampSEC)
 
 #check ob auf GPU mit Hilfe von $HOST ?
 PWD=$VAULT/PhD/DeepLearning/UV-wire/
-DATA=$PWD/Data/
-FOLDERRUNS=$PWD/TrainingRuns/
+DATA="${PWD}Data/"
+FOLDERRUNS="${PWD}TrainingRuns/"
 CODEFOLDER=$HPC/UVWireRecon/
 
 array=( $* )
@@ -30,7 +30,7 @@ for((i=0; i<$#; i++)) ; do
 done 
 
 if [[ $TEST == "true" ]] ||  [[ $PREPARE == "true" ]] ; then
-	RUN=Dummy/
+	RUN=Dummy
 else
 	if [[ $RESUME=="true" ]] && [[ ! -z $FOLDERRUNS$PARENT ]]
 	then
@@ -38,37 +38,38 @@ else
 		then
 			if [[ $SINGLE != "true" ]]
 			then
-				RUN=$PARENT/$TIMESTAMP/
-				if [ -d $FOLDERRUNS$PARENT/$TIMESTAMP/ ]
+				RUN=$PARENT$TIMESTAMP
+				if [ -d $FOLDERRUNS$PARENT$TIMESTAMP ]
 				then
-					RUN=$PARENT/$TIMESTAMPSEC/
+					RUN=$PARENT$TIMESTAMPSEC
 				fi
 			else
-				RUN=$PARENT/
+				RUN=$PARENT
 			fi
 		else
 			echo "Model Folder (${PARENT}) does not exist" ; exit 1
 		fi
 	else
-		RUN=$TIMESTAMP/
+		RUN=$TIMESTAMP
 		if [ -d $FOLDERRUNS$TIMESTAMP ]
 		then
-			RUN=$TIMESTAMPSEC/
+			RUN=$TIMESTAMPSEC
 		fi
 	fi
 fi
 
-mkdir -p $FOLDERRUNS/$RUN
+mkdir -p $FOLDERRUNS$RUN
 
-echo "Run Folder:   " $RUN
+echo "Run Folder:   " $FOLDERRUNS$RUN
 echo
 
 if [[ $PREPARE == "true" ]] ; then
 	echo "(python $CODEFOLDER/run_cnn.py --in $DATA --runs $FOLDERRUNS --out $RUN ${@:1}) | tee $FOLDERRUNS/$RUN/log.dat"
 else
 	#echo "(python $CODEFOLDER/run_cnn.py --in $DATA --runs $FOLDERRUNS --out $RUN ${@:1}) | tee $FOLDERRUNS/$RUN/log.dat"
-	(python $CODEFOLDER/run_cnn.py --in $DATA --runs $FOLDERRUNS --out $RUN ${@:1}) | tee $FOLDERRUNS/$RUN/log.dat
+	#(python $CODEFOLDER/run_cnn.py --in $DATA --runs $FOLDERRUNS --out $RUN ${@:1}) | tee $FOLDERRUNS/$RUN/log.dat
+	(python $CODEFOLDER/run_cnn.py --in $DATA --runs $FOLDERRUNS --out $RUN ${@:1})
 	echo
-	echo "Run Folder:   " $RUN
+	echo "Run Folder:   " $FOLDERRUNS$RUN
 fi
 

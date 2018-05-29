@@ -2,6 +2,7 @@
 
 import sys
 import os
+import stat
 
 # ----------------------------------------------------------
 # Program Functions
@@ -33,10 +34,10 @@ def parseInput():
                                                  'Script that runs a DNN.',
                                      formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('-o', '--out', dest='folderOUT', type=str, default='Dummy/', help='folderOUT Path')
+    parser.add_argument('-o', '--out', dest='folderOUT', type=str, default='Dummy', help='folderOUT Path')
     parser.add_argument('-i', '--in', dest='folderIN', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/', help='folderIN Path')
     parser.add_argument('-r', '--runs', dest='folderRUNS', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/', help='folderRUNS Path')
-    parser.add_argument('-m', '--model', dest='folderMODEL', type=str, default='Dummy/', help='folderMODEL Path')
+    parser.add_argument('-m', '--model', dest='folderMODEL', type=str, default='Dummy', help='folderMODEL Path')
     parser.add_argument('-t', '--targets', type=str, dest='var_targets', default='energy_and_position', choices=['energy_and_position'], help='Targets to train the network against')
     parser.add_argument('-a', '--arch', type=str, dest='cnn_arch', default='DCNN', choices=['DCNN', 'ResNet', 'Inception'], help='Choose network architecture')
     parser.add_argument('-g', '--gpu', type=int, dest='num_gpu', default=1, choices=[1, 2, 3, 4], help='Number of GPUs')
@@ -63,9 +64,11 @@ def parseInput():
         folderIN[source] = os.path.join(os.path.join(args.folderIN,''), endings[source])
         files[source] = [os.path.join(folderIN[source], f) for f in os.listdir(folderIN[source]) if os.path.isfile(os.path.join(folderIN[source], f))]
         print 'Input  Folder: (', source, ')\t', folderIN[source]
-    args.folderOUT = os.path.join(os.path.join(os.path.join(args.folderRUNS,''),args.folderOUT),'')
+    args.folderOUT = os.path.join(os.path.join(args.folderRUNS,args.folderOUT),'')
     args.folderMODEL = os.path.join(os.path.join(os.path.join(args.folderRUNS,''),args.folderMODEL),'')
     args.folderIN = folderIN
+
+    adjustPermissions(args.folderOUT)
 
     if args.resume == True:
         if type(args.num_weights) == int: args.num_weights = str(args.num_weights).zfill(3)
@@ -107,3 +110,27 @@ def splitFiles(args, files, frac_train, frac_val):
             print "%s\t%i\t%i\t%i\t%i" % (source, len(files[source]), len(splitted_files['train'][source]), len(splitted_files['val'][source]), len(splitted_files['test'][source]))
         pickle.dump(splitted_files, open(args.folderOUT + "splitted_files.p", "wb"))
         return splitted_files
+
+def adjustPermissions(path):
+    # set this folder to read/writeable/exec
+    try:
+        os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH)
+    except OSError:
+        # TODO could copy and replace non-changeable files and apply chmod on new files
+        pass
+
+    # step through all the files/folders and change permissions
+    for file in os.listdir(path):
+        filePath = os.path.join(path, file)
+
+        # if it is a directory, doe recursive call
+        if os.path.isdir(filePath):
+            adjustPermissions(filePath)
+        # for files merely call chmod
+        else:
+            try:
+                # set this file to read/writeable/exec
+                os.chmod(filePath, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH)
+            except OSError:
+                # TODO could copy and replace non-changeable files and apply chmod on new files
+                pass
