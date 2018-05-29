@@ -14,27 +14,22 @@ from utilities.cnn_utilities import *
 from plot_scripts.plot_input_plots import *
 from models.shared_conv import *
 
-def main():
-    args, files = parseInput()
-    # exit()
-
+def main(args, files):
     frac_train = {'unss': 0.80, 'unms': 0.00}
     frac_val   = {'unss': 0.20, 'unms': 0.00}
 
     splitted_files = splitFiles(args, files, frac_train=frac_train, frac_val=frac_val)
-
-    plotInputCorrelation(args, splitted_files['train'], add='train')
-    plotInputCorrelation(args, splitted_files['val'], add='val')
+    #
+    # plotInputCorrelation(args, splitted_files['train'], add='train')
+    # plotInputCorrelation(args, splitted_files['val'], add='val')
 
     executeCNN(args, splitted_files, args.var_targets, args.cnn_arch, args.batchsize, (args.num_weights, args.num_epoch), n_gpu=(args.num_gpu, 'avolkov'), mode='train',
                shuffle=(False, None), tb_logger=False)
 
     print 'final plots \t start'
     # plot.final_plots(folderOUT=args.folderOUT, obs=pickle.load(open(args.folderOUT + "save.p", "rb")))
-    plot_traininghistory.
     print 'final plots \t end'
 
-    print '===================================== Program finished =============================='
 
 
 def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'avolkov'), mode='train',
@@ -59,13 +54,11 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'a
     if epoch[0] == 0:
         if nn_arch is 'DCNN':
             model = create_shared_dcnn_network()
-
         elif nn_arch is 'ResNet':
             raise ValueError('Currently, this is not implemented')
             # model = create_vgg_like_model(n_bins, batchsize, nb_classes=class_type[0], dropout=0.1,
             #                               n_filters=(64, 64, 64, 64, 64, 64, 128, 128, 128, 128),
             #                               swap_4d_channels=swap_4d_channels)
-
         elif nn_arch is 'Inception':
             # model = create_convolutional_lstm(n_bins, batchsize, nb_classes=class_type[0], dropout=0.1,
             #                                   n_filters=(16, 16, 32, 32, 32, 32, 64, 64))
@@ -87,6 +80,7 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'a
         ks.utils.plot_model(model, to_file=args.folderOUT+'/plot_model.png', show_shapes=True, show_layer_names=True)
     except ImportError:
         print 'could not produce plot_model.png ---- try on CPU'
+        #TODO add function that produces a script for producing plot_mode.png
 
     adam = ks.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=0.1, decay=0.0)  # epsilon=1 for deep networks
     optimizer = adam  # Choose optimizer, only used if epoch == 0
@@ -102,24 +96,15 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'a
             optimizer=optimizer,
             metrics=['mean_absolute_error'])
 
-    print "\nFirst Epoch:\t", epoch
+    print "\nTraining begins in Epoch:\t", epoch
 
     if mode == 'train':
         model.save(args.folderOUT + "models/model_initial.hdf5")
-        # lr = None
-        for epoch_i in xrange(epoch[0], epoch[1]+1):
-            print 'Set learning rate to ' + str(K.get_value(model.optimizer.lr)) + ' before epoch ' + str(epoch_i)
-            # TODO implement lr rate schedule
-            # lr, lr_decay = schedule_learning_rate(model, epoch_i, n_gpu, args.splitted_files['train'], lr_initial=0.003, manual_mode=(False, None, 0.0, None))
-            # lr, lr_decay = schedule_learning_rate(model, epoch_i, n_gpu, train_files, lr_initial=0.003,
-            #                                       manual_mode=(True, 0.0006, 0.07, lr))
-            history_train = fit_model(args, model, files, batchsize, var_targets, epoch_i, shuffle, n_events=None, tb_logger=tb_logger)
-            history_test = evaluate_model(args, model, files['val'], batchsize, var_targets, epoch_i, n_events=None)
-
-            # save_train_and_test_statistics_to_txt(model, history_train, history_test, lr_decay, epoch_i,
-            #                                       files, batchsize, var_targets)
-            # plot_train_and_test_statistics(modelname)
-            # plot_weights_and_activations(test_files[0][0], n_bins, class_type, xs_mean, swap_4d_channels, modelname, epoch[0], file_no, str_ident)
+        model.save_weights(args.folderOUT + "models/weights_initial.hdf5")
+        model = fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_events=None, tb_logger=tb_logger)
+        # history_test = evaluate_model(args, model, files['val'], batchsize, var_targets, epoch, n_events=None)
+        # save_train_and_test_statistics_to_txt(model, history_train, history_test, epoch, files, batchsize, var_targets)
+        model.save_weights(args.folderOUT + "models/weights_final.hdf5")
         model.save(args.folderOUT + "models/model_final.hdf5")
     elif mode == 'eval':
         raise ValueError('Check, if model evaluation is implemented yet')
@@ -242,8 +227,6 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     :param bool tb_logger: Declares if a tb_callback during fit_generator should be used (takes long time to save the tb_log!).
     """
     callbacks = []
-    csvlogger = ks.callbacks.CSVLogger(args.folderOUT + 'training_history.csv', separator='\t', append=True)
-    callbacks.append(csvlogger)
 
     if tb_logger is True:
         raise ValueError('Currently, no Tensorboard Logger implemented')
@@ -260,24 +243,47 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
 
     train_steps_per_epoch = int(getNumEvents(files['train']) / batchsize)
 
-    # logger = BatchLevelPerformanceLogger(display=100, steps_per_epoch=train_steps_per_epoch, epoch=epoch, folderOUT=args.folderOUT)
-    # callbacks.append(logger)
+    csvlogger = ks.callbacks.CSVLogger(args.folderOUT + 'training_history.csv', separator='\t', append=args.resume)
+    modellogger = ks.callbacks.ModelCheckpoint(args.folderOUT + 'models/weights-{epoch:03d}.hdf5', save_weights_only=True, period=1)
+    # lrscheduler = ks.callbacks.LearningRateScheduler(schedule, verbose=0)
+    # epochlogger = EpochLevelPerformanceLogger(args= args, files):
+    batchlogger = BatchLevelPerformanceLogger(display=100, steps_per_epoch=train_steps_per_epoch, args=args)
 
-    print 'Training in epoch', epoch, 'on events:', train_steps_per_epoch*batchsize
+    # # lr = None
+    print 'Set learning rate to ' + str(K.get_value(model.optimizer.lr))
+    # # TODO implement lr rate schedule
+    # # lr, lr_decay = schedule_learning_rate(model, epoch_i, n_gpu, args.splitted_files['train'], lr_initial=0.003, manual_mode=(False, None, 0.0, None))
+    # # lr, lr_decay = schedule_learning_rate(model, epoch_i, n_gpu, train_files, lr_initial=0.003,
+    # #                                       manual_mode=(True, 0.0006, 0.07, lr))
 
-    history = model.fit_generator(
+    callbacks.append(csvlogger)
+    callbacks.append(modellogger)
+    # callbacks.append(lrscheduler)
+    callbacks.append(batchlogger)
+    # callbacks.append(epochlogger)
+
+    print 'training from:', epoch
+
+    print 'training events:', train_steps_per_epoch*batchsize
+    print 'validation events:', validation_steps*batchsize
+
+    model.fit_generator(
         generate_batches_from_files(files['train'], batchsize, var_targets),
         steps_per_epoch=train_steps_per_epoch,
-        epochs=60,
-        initial_epoch=epoch,
+        epochs=epoch[0]+epoch[1],
+        initial_epoch=epoch[0],
         verbose=1,
         max_queue_size=10,
         validation_data=validation_data,
         validation_steps=validation_steps,
         callbacks=callbacks)
-    model.save_weights(args.folderOUT + "models/weights_epoch_" + str(epoch) + ".hdf5")
+    model.save_weights(args.folderOUT + "models/weights_epoch_" + str(epoch[0]+epoch[1]) + ".hdf5")
 
-    return history
+    print 'Model performance\tloss\t\tmean_abs_err'
+    print '\tTrain:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batches_from_files(files['train'], batchsize, var_targets), steps=50))
+    print '\tValid:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batches_from_files(files['val']  , batchsize, var_targets), steps=50))
+    return model
+
 
 def evaluate_model(args, model, files, batchsize, var_targets, epoch, n_events=None):
     """
@@ -293,25 +299,24 @@ def evaluate_model(args, model, files, batchsize, var_targets, epoch, n_events=N
 
     history = None
 
-    # for i, (f, f_size) in enumerate(test_files):
-    #     print 'Testing on file ', i, ',', str(f)
-    #
-    #     if n_events is not None: f_size = n_events  # for testing
-    #
-    #     history = model.evaluate_generator(
-    #         generate_batches_from_hdf5_file(f, batchsize, n_bins, class_type, str_ident, swap_col=swap_4d_channels, f_size=f_size, zero_center_image=xs_mean),
-    #         steps=int(f_size / batchsize), max_queue_size=10)
-    #     print 'Test sample results: ' + str(history) + ' (' + str(model.metrics_names) + ')'
-    #
-    #     logfile_fname = 'models/trained/perf_plots/log_test_' + modelname + '.txt'
-    #     logfile = open(logfile_fname, 'a+')
-    #     if os.stat(logfile_fname).st_size == 0: logfile.write('#Epoch\tLoss\tAccuracy\n')
-    #     logfile.write(str(epoch) + '\t' + str(history[0]) + '\t' + str(history[1]) + '\n')
+    for i, (f, f_size) in enumerate(test_files):
+        print 'Testing on file ', i, ',', str(f)
+
+        if n_events is not None: f_size = n_events  # for testing
+
+        history = model.evaluate_generator(
+            generate_batches_from_hdf5_file(f, batchsize, n_bins, class_type, str_ident, swap_col=swap_4d_channels, f_size=f_size, zero_center_image=xs_mean),
+            steps=int(f_size / batchsize), max_queue_size=10)
+        print 'Test sample results: ' + str(history) + ' (' + str(model.metrics_names) + ')'
+
+        logfile_fname = 'models/trained/perf_plots/log_test_' + modelname + '.txt'
+        logfile = open(logfile_fname, 'a+')
+        if os.stat(logfile_fname).st_size == 0: logfile.write('#Epoch\tLoss\tAccuracy\n')
+        logfile.write(str(epoch) + '\t' + str(history[0]) + '\t' + str(history[1]) + '\n')
 
     return history
 
-def save_train_and_test_statistics_to_txt(model, history_train, history_test, lr, lr_decay,
-                                          epoch, files, batchsize, var_targets):
+def save_train_and_test_statistics_to_txt(model, history_train, history_test, epoch, files, batchsize, var_targets):
     """
     Function for saving various information during training and testing to a .txt file.
     """
@@ -431,4 +436,12 @@ def predict_energy_reconstruction(model, generator):
 # Program Start
 # ----------------------------------------------------------
 if __name__ == '__main__':
-    main()
+    try:
+        args, files = parseInput()
+        main(args=args, files=files)
+    except KeyboardInterrupt:
+        print ' >> Interrupted << '
+    finally:
+        adjustPermissions(args.folderOUT)
+
+    print '===================================== Program finished =============================='
