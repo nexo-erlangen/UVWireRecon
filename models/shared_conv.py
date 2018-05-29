@@ -86,8 +86,8 @@ def create_shared_dcnn_network():
     # encoded_5_V_2 = shared_conv_5_V(pooled_4_V_2)
 
     # Merge U- and V-wire of TPC 1 and TPC 2
-    merge_TPC_1 = concatenate([pooled_4_U_1, pooled_4_U_2], name='TPC_1')
-    merge_TPC_2 = concatenate([pooled_4_V_1, pooled_4_V_2], name='TPC_2')
+    merge_TPC_1 = concatenate([pooled_4_U_1, pooled_4_V_1], name='TPC_1')
+    merge_TPC_2 = concatenate([pooled_4_U_2, pooled_4_V_2], name='TPC_2')
 
     # Flatten
     flat_TPC_1 = Flatten(name='Flat_TPC_1')(merge_TPC_1)
@@ -112,6 +112,6 @@ def create_shared_dcnn_network():
 
     # Output
     output_xyze = Dense(4, activation='relu', name='Output_xyze')(merge_TPC_1_2)
-    output_TPC = Dense(1, activation='sigmoid', name='Output_TPC')(merge_TPC_1_2)
+    #output_TPC = Dense(1, activation='sigmoid', name='Output_TPC')(merge_TPC_1_2)
 
-    return Model(inputs=[visible_U_1, visible_V_1, visible_U_2, visible_V_2], outputs=[output_xyze, output_TPC])
+    return Model(inputs=[visible_U_1, visible_V_1, visible_U_2, visible_V_2], outputs=[output_xyze])    #outputs=[output_xyze, output_TPC])

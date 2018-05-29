@@ -16,7 +16,7 @@ from models.shared_conv import *
 
 def main():
     args, files = parseInput()
-    exit()
+    # exit()
 
     frac_train = {'unss': 0.80, 'unms': 0.00}
     frac_val   = {'unss': 0.20, 'unms': 0.00}
@@ -31,6 +31,7 @@ def main():
 
     print 'final plots \t start'
     # plot.final_plots(folderOUT=args.folderOUT, obs=pickle.load(open(args.folderOUT + "save.p", "rb")))
+    plot_traininghistory.
     print 'final plots \t end'
 
     print '===================================== Program finished =============================='
@@ -241,6 +242,9 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     :param bool tb_logger: Declares if a tb_callback during fit_generator should be used (takes long time to save the tb_log!).
     """
     callbacks = []
+    csvlogger = ks.callbacks.CSVLogger(args.folderOUT + 'training_history.csv', separator='\t', append=True)
+    callbacks.append(csvlogger)
+
     if tb_logger is True:
         raise ValueError('Currently, no Tensorboard Logger implemented')
         # boardwrapper = TensorBoardWrapper(generate_batches_from_hdf5_file(test_files[0][0], batchsize, n_bins, class_type, str_ident, zero_center_image=xs_mean),
@@ -252,19 +256,19 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     else:
         # validation_data, validation_steps, callbacks = None, None, []
         validation_data = generate_batches_from_files(files['val'], batchsize, var_targets)
-        validation_steps = int(min([getNumEvents(files['val']), 5000]) / batchsize)
+        validation_steps = int(min([getNumEvents(files['val']), 10000]) / batchsize)
 
     train_steps_per_epoch = int(getNumEvents(files['train']) / batchsize)
 
-    logger = BatchLevelPerformanceLogger(display=100, steps_per_epoch=train_steps_per_epoch, epoch=epoch, folderOUT=args.folderOUT)
-    callbacks.append(logger)
+    # logger = BatchLevelPerformanceLogger(display=100, steps_per_epoch=train_steps_per_epoch, epoch=epoch, folderOUT=args.folderOUT)
+    # callbacks.append(logger)
 
     print 'Training in epoch', epoch, 'on events:', train_steps_per_epoch*batchsize
 
     history = model.fit_generator(
         generate_batches_from_files(files['train'], batchsize, var_targets),
         steps_per_epoch=train_steps_per_epoch,
-        epochs=1,
+        epochs=60,
         initial_epoch=epoch,
         verbose=1,
         max_queue_size=10,
