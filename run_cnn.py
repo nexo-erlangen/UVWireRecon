@@ -13,6 +13,7 @@ from utilities.generator import *
 from utilities.cnn_utilities import *
 from plot_scripts.plot_input_plots import *
 from models.shared_conv import *
+from plot_scripts.plot_traininghistory import *
 
 def main(args, files):
     frac_train = {'unss': 0.80, 'unms': 0.00}
@@ -28,6 +29,8 @@ def main(args, files):
 
     print 'final plots \t start'
     # plot.final_plots(folderOUT=args.folderOUT, obs=pickle.load(open(args.folderOUT + "save.p", "rb")))
+    plot_traininghistory(args)
+
     print 'final plots \t end'
 
 
