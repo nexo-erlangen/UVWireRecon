@@ -4,6 +4,15 @@
 
 import keras as ks
 import os
+from sys import path
+path.append('/home/hpc/capm/sn0515/UVWireRecon')
+
+from utilities.input_utilities import *
+from utilities.generator import *
+from utilities.cnn_utilities import *
+from plot_scripts.plot_input_plots import *
+from plot_scripts.plot_traininghistory import *
+from plot_scripts.plot_validation import *
 
 class TensorBoardWrapper(ks.callbacks.TensorBoard):
     """Up to now (05.10.17), Keras doesn't accept TensorBoard callbacks with validation data that is fed by a generator.
@@ -53,19 +62,13 @@ class BatchLevelPerformanceLogger(ks.callbacks.Callback):
         self.seen += 1
         self.averageLoss += logs.get('loss')
         self.averageMAE += logs.get('mean_absolute_error')
-        self.averageValLoss += logs.get('val_loss')
-        self.averageValMAE += logs.get('val_mean_absolute_error')
         if self.seen % self.display == 0:
             averaged_loss = self.averageLoss / self.display
             averaged_mae = self.averageMAE / self.display
-            averaged_val_loss = self.averageValLoss / self.display
-            averaged_val_mae = self.averageValMAE / self.display
             batchnumber_float = (self.seen - self.display / 2.) / float(self.steps_per_epoch) # + self.epoch - 1  # start from zero
-            self.loglist.append('\n{0}\t{1}\t{2}\t{3}\t{4}\t{5}'.format(self.seen, batchnumber_float, averaged_loss, averaged_mae, averaged_val_loss, averaged_val_mae))
+            self.loglist.append('\n{0}\t{1}\t{2}\t{3}'.format(self.seen, batchnumber_float, averaged_loss, averaged_mae))
             self.averageLoss = 0
             self.averageMAE = 0
-            self.averageValLoss = 0
-            self.averageValMAE = 0
 
     def on_epoch_begin(self, epoch, logs={}):
         self.loglist = []
@@ -83,21 +86,22 @@ class BatchLevelPerformanceLogger(ks.callbacks.Callback):
 
 
 class EpochLevelPerformanceLogger(ks.callbacks.Callback):
-    def __init__(self, args, files):
+    def __init__(self, args, files, var_targets):
         ks.callbacks.Callback.__init__(self)
         self.validation_data = None
         self.args = args
         self.files = files
-        self.events_val = 10000
-        self.events_per_batch = 1000
-        self.val_iterations = plot.round_down(self.events_val, self.events_per_batch) / self.events_per_batch
-        # self.gen_val = generate_batch_reconstruction(generate_event_reconstruction(np.concatenate(self.files['val'].values()).tolist()), self.events_per_batch)
-        self.gen_val = generate_batch_reconstruction(generate_event_reconstruction(self.files['val']['thms']+self.files['test']['thms']), self.events_per_batch)
+        self.events_val = min([getNumEvents(files), 2000])
+        self.events_per_batch = 50
+        self.val_iterations = round_down(self.events_val, self.events_per_batch) / self.events_per_batch
+        self.val_gen = generate_batches_from_files(files, batchsize=self.events_per_batch, class_type=var_targets, yield_mc_info=1)
 
     def on_train_begin(self, logs={}):
         self.losses = []
-        if self.args.resume: os.system("cp %s %s" % (self.args.folderMODEL + "save.p", self.args.folderOUT + "save.p"))
-        else: pickle.dump({}, open(self.args.folderOUT + "save.p", "wb"))
+        if self.args.resume:
+            os.system("cp %s %s" % (self.args.folderMODEL + "save.p", self.args.folderOUT + "save.p"))
+        else:
+            pickle.dump({}, open(self.args.folderOUT + "save.p", "wb"))
         return
 
     def on_train_end(self, logs={}):
@@ -107,29 +111,24 @@ class EpochLevelPerformanceLogger(ks.callbacks.Callback):
         return
 
     def on_epoch_end(self, epoch, logs={}):
-        E_CNN, E_EXO, E_True, isSS = [], [], [], []
+        Y_PRED, Y_TRUE, EVENT_INFO = [], [], []
         for i in xrange(self.val_iterations):
-            E_CNN_temp, E_True_temp, E_EXO_temp, isSS_temp = predict_energy_reconstruction(self.model, self.gen_val)
-            E_True.extend(E_True_temp)
-            E_CNN.extend(E_CNN_temp)
-            E_EXO.extend(E_EXO_temp)
-            isSS.extend(isSS_temp)
-        dataIn = {'E_CNN': np.asarray(E_CNN), 'E_EXO': np.asarray(E_EXO), 'E_True': np.asarray(E_True), 'isSS': np.asarray(isSS)}
-        obs = plot.make_plots(self.args.folderOUT, dataIn=dataIn, epoch=str(epoch), sources='th', position='S5')
+            Y_PRED_temp, Y_TRUE_temp, EVENT_INFO_temp = predict_mc(self.model, self.val_gen)
+            Y_PRED.extend(Y_PRED_temp)
+            Y_TRUE.extend(Y_TRUE_temp)
+            EVENT_INFO.extend(EVENT_INFO_temp)
+        # Eval_dict = {'Y_PRED': np.asarray(Y_PRED), 'Y_TRUE': np.asarray(Y_TRUE), 'EVENT_INFO': np.asarray(EVENT_INFO)}
+        # obs = plot.make_plots(self.args.folderOUT, dataIn=dataIn, epoch=str(epoch), sources='th', position='S5')
         self.dict_out = pickle.load(open(self.args.folderOUT + "save.p", "rb"))
-        self.dict_out[str(epoch)] = {'E_CNN': E_CNN, 'E_True': E_True, 'E_EXO': E_EXO,
-                                     'peak_pos': obs['peak_pos'],
-                                     'peak_sig': obs['peak_sig'],
-                                     'resid_pos': obs['resid_pos'],
-                                     'resid_sig': obs['resid_sig'],
+        self.dict_out[epoch] = {'Y_PRED': np.asarray(Y_PRED), 'Y_TRUE': np.asarray(Y_TRUE), 'EVENT_INFO': np.asarray(EVENT_INFO),
                                      'loss': logs['loss'], 'mean_absolute_error': logs['mean_absolute_error'],
                                      'val_loss': logs['val_loss'], 'val_mean_absolute_error': logs['val_mean_absolute_error']}
         pickle.dump(self.dict_out, open(self.args.folderOUT + "save.p", "wb"))
-        plot.final_plots(folderOUT=self.args.folderOUT, obs=pickle.load(open(self.args.folderOUT + "save.p", "rb")))
+        on_epoch_end_plots(folderOUT=self.args.folderOUT, epoch=epoch, data=self.dict_out[epoch])
 
         # plot_train_and_test_statistics(modelname)
         # plot_weights_and_activations(test_files[0][0], n_bins, class_type, xs_mean, swap_4d_channels, modelname,
         #                              epoch[0], file_no, str_ident)
-        plot_traininghistory(args)
+        # plot_traininghistory(args)
 
         return

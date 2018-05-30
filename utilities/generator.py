@@ -17,7 +17,7 @@ def generate_batches_from_files(files, batchsize, class_type=None, f_size=None, 
     :param int/None f_size: Specifies the filesize (#images) of the .h5 file if not the whole .h5 file
                        but a fraction of it (e.g. 10%) should be used for yielding the xs/ys arrays.
                        This is important if you run fit_generator(epochs>1) with a filesize (and hence # of steps) that is smaller than the .h5 file.
-    :param bool yield_mc_info: Specifies if mc-infos should be yielded. 0: Only Waveforms, 1: Waveforms+MC Info, 2: Only MC Info
+    :param int yield_mc_info: Specifies if mc-infos should be yielded. 0: Only Waveforms, 1: Waveforms+MC Info, 2: Only MC Info
                                The mc-infos are used for evaluation after training and testing is finished.
     :return: tuple output: Yields a tuple which contains a full batch of images and labels (+ mc_info depending on yield_mc_info).
     """
@@ -78,6 +78,11 @@ def encode_targets(y_dict, batchsize, class_type=None):
         raise ValueError('Class type ' + str(class_type) + ' not supported!')
     return train_y
 
+def predict_mc(model, generator):
+    X, Y_TRUE, EVENT_INFO = generator.next()
+    Y_PRED = np.asarray(model.predict(X, 10))
+    return (Y_PRED, Y_TRUE, EVENT_INFO)
+
 def getNumEvents(files):
     if isinstance(files, list): pass
     elif isinstance(files, basestring): files = [files]
@@ -107,4 +112,7 @@ def get_array_memsize(array, unit='KB'):
     precision = array.dtype.itemsize # Precision of each entry in bytes
     memsize = (n_numbers * precision) # in bytes
     return memsize/1024**units[unit]
+
+def round_down(num, divisor):
+    return num - (num%divisor)
 

@@ -241,7 +241,7 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
         # validation_steps = int(min([ getNumEvents(files['val']), 5000 ]) / batchsize)
     else:
         # validation_data, validation_steps, callbacks = None, None, []
-        validation_data = generate_batches_from_files(files['val'], batchsize, var_targets)
+        validation_data = generate_batches_from_files(files['val'], batchsize=batchsize, class_type=var_targets, yield_mc_info=0)
         validation_steps = int(min([getNumEvents(files['val']), 10000]) / batchsize)
 
     train_steps_per_epoch = int(getNumEvents(files['train']) / batchsize)
@@ -249,7 +249,7 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     csvlogger = ks.callbacks.CSVLogger(args.folderOUT + 'training_history.csv', separator='\t', append=args.resume)
     modellogger = ks.callbacks.ModelCheckpoint(args.folderOUT + 'models/weights-{epoch:03d}.hdf5', save_weights_only=True, period=1)
     # lrscheduler = ks.callbacks.LearningRateScheduler(schedule, verbose=0)
-    # epochlogger = EpochLevelPerformanceLogger(args= args, files):
+    epochlogger = EpochLevelPerformanceLogger(args=args, files=files['val'], var_targets=var_targets)
     batchlogger = BatchLevelPerformanceLogger(display=100, steps_per_epoch=train_steps_per_epoch, args=args)
 
     # # lr = None
@@ -263,7 +263,7 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     callbacks.append(modellogger)
     # callbacks.append(lrscheduler)
     callbacks.append(batchlogger)
-    # callbacks.append(epochlogger)
+    callbacks.append(epochlogger)
 
     print 'training from:', epoch
 
@@ -271,7 +271,7 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     print 'validation events:', validation_steps*batchsize
 
     model.fit_generator(
-        generate_batches_from_files(files['train'], batchsize, var_targets),
+        generate_batches_from_files(files['train'], batchsize=batchsize, class_type=var_targets, yield_mc_info=0),
         steps_per_epoch=train_steps_per_epoch,
         epochs=epoch[0]+epoch[1],
         initial_epoch=epoch[0],
@@ -425,15 +425,10 @@ def load_trained_model(args):
 # ----------------------------------------------------------
 # OLD
 # ----------------------------------------------------------
-def predict_energy(model, generator):
-    E_CNN_wfs, E_True = generator.next()
-    E_CNN = np.asarray(model.predict(E_CNN_wfs, 100)[:,0])
-    return (E_CNN, E_True)
-
-def predict_energy_reconstruction(model, generator):
-    E_CNN_wfs, E_True, E_EXO, isSS = generator.next()
-    E_CNN = np.asarray(model.predict(E_CNN_wfs, 100)[:, 0])
-    return (E_CNN, E_True, E_EXO, isSS)
+# def predict_energy_reconstruction(model, generator):
+#     E_CNN_wfs, E_True, E_EXO, isSS = generator.next()
+#     E_CNN = np.asarray(model.predict(E_CNN_wfs, 100)[:, 0])
+#     return (E_CNN, E_True, E_EXO, isSS)
 
 # ----------------------------------------------------------
 # Program Start
