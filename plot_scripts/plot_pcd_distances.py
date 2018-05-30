@@ -12,8 +12,10 @@ import h5py
 # data = np.loadtxt(file)
 # print data.shape
 
-folder = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/EnergyCorrectionNew/'
+folder = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/UniformGamma_ExpWFs_MC_SS/'
 files = [f for f in listdir(folder) if isfile(join(folder, f)) and '.hdf5' in f]
+
+folderOUT = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Plots/'
 
 for index, filename in enumerate(files):
     # if index>=5: break
@@ -22,27 +24,27 @@ for index, filename in enumerate(files):
         data = np.asarray([fIN['MCEnergy'][:,0],fIN['G4NumActivePCD'],fIN['G4MaxDistActivePCD'],fIN['G4MaxDistAllPCD']])
     else:
         data = np.concatenate((data, np.asarray([fIN['MCEnergy'][:,0],fIN['G4NumActivePCD'],fIN['G4MaxDistActivePCD'],fIN['G4MaxDistAllPCD']])), axis=1)
-    print data.shape
+    # print data.shape
     fIN.close()
 print data.shape
 
-mask0 = data[0,:]>=550.
-data = data[:,mask0]
-mask00 = data[0,:]<=3500.
-data = data[:,mask00]
-print data.shape
-mask1 = data[2,:]<=5.
-data = data[:,mask1]
-mask2 = data[3,:]<=6.
-data = data[:,mask2]
-print data.shape
+# mask0 = data[0,:]>=550.
+# data = data[:,mask0]
+# mask00 = data[0,:]<=3500.
+# data = data[:,mask00]
+# print data.shape
+# mask1 = data[2,:]<=5.
+# data = data[:,mask1]
+# mask2 = data[3,:]<=6.
+# data = data[:,mask2]
+# print data.shape
 
 
 plt.ion()
 
-activePCD = 30
-maxDist = 10 #2
-pixelsize = .5
+activePCD = 15
+maxDist = 6 #2
+pixelsize = .1
 minE = 500
 maxE = 3550
 
@@ -50,7 +52,7 @@ plt.clf()
 plt.hist2d(data[0], data[2], bins=[np.arange(minE,maxE,(maxE-minE)/100),np.arange(0,maxDist,pixelsize)], cmin=1)
 plt.ylabel('Max distance between active PCDs [mm]')
 plt.xlabel('Energy [keV]')
-# plt.savefig(folder+'heatmap_dist.png', bbox_inches='tight')
+plt.savefig(folderOUT+'heatmap_dist_active_PCDs.png', bbox_inches='tight')
 plt.show()
 plt.draw()
 raw_input('')
@@ -59,7 +61,7 @@ plt.clf()
 plt.hist2d(data[0], data[3], bins=[np.arange(minE,maxE,(maxE-minE)/100),np.arange(0,maxDist,pixelsize)], cmin=1)
 plt.ylabel('Max distance between all PCDs [mm]')
 plt.xlabel('Energy [keV]')
-# plt.savefig(folder+'heatmap_dist.png', bbox_inches='tight')
+plt.savefig(folderOUT+'heatmap_dist_all_PCDs.png', bbox_inches='tight')
 plt.show()
 plt.draw()
 raw_input('')
@@ -68,7 +70,7 @@ plt.clf()
 plt.hist2d(data[2], data[3], bins=[np.arange(0,maxDist,pixelsize),np.arange(0,maxDist,pixelsize)], cmin=1)
 plt.xlabel('Max distance between active PCDs [mm]')
 plt.ylabel('Max distance between all PCDs [mm]')
-plt.savefig(folder+'heatmap_dist.png', bbox_inches='tight')
+plt.savefig(folderOUT+'heatmap_dist_all_active_PCDs.png', bbox_inches='tight')
 plt.show()
 plt.draw()
 raw_input('')
@@ -84,7 +86,7 @@ plt.clf()
 plt.hist2d(data[1], data[2], bins=[range(activePCD),np.arange(0,maxDist,pixelsize)], cmin=1)
 plt.xlabel('Active PCDs')
 plt.ylabel('Max distance between active PCDs [mm]')
-plt.savefig(folder+'heatmap.png', bbox_inches='tight')
+plt.savefig(folderOUT+'heatmap.png', bbox_inches='tight')
 plt.show()
 plt.draw()
 raw_input('')
@@ -92,7 +94,7 @@ raw_input('')
 plt.clf()
 plt.hist(data[1],bins=range(activePCD))
 plt.xlabel('Active PCDs')
-plt.savefig(folder+'activePCD.png', bbox_inches='tight')
+plt.savefig(folderOUT+'activePCD.png', bbox_inches='tight')
 plt.show()
 plt.draw()
 raw_input('')
@@ -100,7 +102,7 @@ raw_input('')
 plt.clf()
 plt.hist(data[2],bins=np.arange(0,maxDist,pixelsize), cumulative=True)
 plt.xlabel('Max distance between active PCDs [mm]')
-plt.savefig(folder+'MaxDistActPCD-Cum.png', bbox_inches='tight')
+plt.savefig(folderOUT+'MaxDistActPCD-Cum.png', bbox_inches='tight')
 plt.show()
 plt.draw()
 raw_input('')
