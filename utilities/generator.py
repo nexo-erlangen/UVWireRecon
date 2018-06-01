@@ -51,6 +51,8 @@ def generate_batches_from_files(files, batchsize, class_type=None, f_size=None, 
                     xs_i = np.swapaxes(xs_i, 0, 1)
                     xs_i = np.swapaxes(xs_i, 2, 3)
                 ys_i = ys[i: i + batchsize]
+                # print ys_i
+                # raw_input('')
 
                 if   yield_mc_info == 0:    yield (list(xs_i), ys_i)
                 elif yield_mc_info == 1:    yield (list(xs_i), ys_i) + ({ key: eventInfo[key][i: i + batchsize] for key in eventInfo.keys() },)
@@ -74,6 +76,16 @@ def encode_targets(y_dict, batchsize, class_type=None):
         train_y[:,1] = y_dict['MCPosX'][:,0]  # dir_x
         train_y[:,2] = y_dict['MCPosY'][:,0]  # dir_y
         train_y[:,3] = y_dict['MCTime'][:,0]  # time (to calculate dir_z)
+    elif class_type == 'energy':
+        train_y = np.zeros((batchsize, 1), dtype='float32')
+        train_y[:,0] = y_dict['MCEnergy'][:,0]  # energy
+    elif class_type == 'position_x_y':
+        train_y = np.zeros((batchsize, 2), dtype='float32')
+        train_y[:,0] = y_dict['MCPosX'][:,0]  # dir_x
+        train_y[:,1] = y_dict['MCPosY'][:,0]  # dir_y
+    elif class_type == 'time':
+        train_y = np.zeros((batchsize, 1), dtype='float32')
+        train_y[:, 0] = y_dict['MCTime'][:, 0]  # time (to calculate dir_z)
     else:
         raise ValueError('Class type ' + str(class_type) + ' not supported!')
     return train_y

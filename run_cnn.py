@@ -16,11 +16,11 @@ from models.shared_conv import *
 from plot_scripts.plot_traininghistory import *
 
 def main(args, files):
-    frac_train = {'unss': 0.80, 'unms': 0.00}
+    frac_train = {'unss': 0.30, 'unms': 0.00}
     frac_val   = {'unss': 0.20, 'unms': 0.00}
 
     splitted_files = splitFiles(args, files, frac_train=frac_train, frac_val=frac_val)
-    #
+
     # plotInputCorrelation(args, splitted_files['train'], add='train')
     # plotInputCorrelation(args, splitted_files['val'], add='val')
 

@@ -111,7 +111,9 @@ def create_shared_dcnn_network():
     # flat_TPC_1_and_2 = Flatten(name='TPCs')(merge_TPC_1_2)
 
     # Output
-    output_xyze = Dense(4, activation='relu', name='Output_xyze')(merge_TPC_1_2)
+    # output_xyze = Dense(4, name='Output_xyze')(merge_TPC_1_2)
+    # output_xyze = Dense(2, name='Output_xyze')(merge_TPC_1_2)
+    output_xyze = Dense(4, name='Output_xyze')(merge_TPC_1_2)
     #output_TPC = Dense(1, activation='sigmoid', name='Output_TPC')(merge_TPC_1_2)
 
     return Model(inputs=[visible_U_1, visible_V_1, visible_U_2, visible_V_2], outputs=[output_xyze])    #outputs=[output_xyze, output_TPC])
