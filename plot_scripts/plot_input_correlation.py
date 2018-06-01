@@ -17,7 +17,7 @@ def main():
     folderOUT = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/Dummy/'
 
     files = [os.path.join(folderIN, f) for f in os.listdir(folderIN) if os.path.isfile(os.path.join(folderIN, f))]
-    print files
+    # print files
     number = gen.getNumEvents(files)/len(files)
     generator = gen.generate_batches_from_files(files, number, class_type='energy_and_position', f_size=None, yield_mc_info=2)
     print number
@@ -40,10 +40,14 @@ def main():
             ys = ys_temp
         else:
             ys = np.concatenate((ys, ys_temp),axis=1)
-        print ys.shape
+        # print ys.shape
 
 
     plot_input_correlations(ys, folderOUT)
+
+    # timeToZfit(ys, folderOUT)
+
+
     # plot_input_correlations_heat(ys, folderOUT)
     return
 
@@ -138,6 +142,24 @@ def plot_input_correlations(ys, folderOUT):
 
     return
 
+def linearfunc(x, m, t):
+    return m * x + t
+
+def timeToZfit(ys, folderOUT):
+
+    from scipy.optimize import curve_fit
+    import numpy as np
+
+    popt, pcov = curve_fit(linearfunc, ys.T[:,4], np.abs(ys.T[:,3]))
+    print popt
+    print np.sqrt(np.diag(pcov))
+
+    a = np.linspace(1000, 1200, 5)
+
+    plt.plot(ys.T[:, 4], np.abs(ys.T[:, 3]), label='data', marker='.')
+    plt.plot(a, linearfunc(a, *popt), color='red')
+    plt.show()
+    plt.draw()
 
 # ----------------------------------------------------------
 # Program Start
