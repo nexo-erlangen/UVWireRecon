@@ -125,6 +125,7 @@ class EpochLevelPerformanceLogger(ks.callbacks.Callback):
                                      'val_loss': logs['val_loss'], 'val_mean_absolute_error': logs['val_mean_absolute_error']}
         pickle.dump(self.dict_out, open(self.args.folderOUT + "save.p", "wb"))
         on_epoch_end_plots(folderOUT=self.args.folderOUT, epoch=epoch, data=self.dict_out[epoch])
+        plot_traininghistory(args)
 
         # plot_train_and_test_statistics(modelname)
         # plot_weights_and_activations(test_files[0][0], n_bins, class_type, xs_mean, swap_4d_channels, modelname,

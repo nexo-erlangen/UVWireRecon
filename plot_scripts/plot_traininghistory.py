@@ -15,9 +15,9 @@ def plot_traininghistory(args):
 
     plt.clf()
     plt.plot(data[0:59, 0], data[0:59, 2])
-    plt.savefig(args.folderOUT + 'plot_meanabserror.png', bbox_inches='tight')
     plt.xlabel('Epoch')
     plt.ylabel('Mean Absolute Error')
-    plt.show()
-    plt.draw()
+    plt.savefig(args.folderOUT + 'plot_meanabserror.png', bbox_inches='tight')
+    # plt.show()
+    # plt.draw()
 

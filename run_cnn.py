@@ -29,7 +29,7 @@ def main(args, files):
 
     print 'final plots \t start'
     # plot.final_plots(folderOUT=args.folderOUT, obs=pickle.load(open(args.folderOUT + "save.p", "rb")))
-    plot_traininghistory(args)
+    # plot_traininghistory(args)
 
     print 'final plots \t end'
 
