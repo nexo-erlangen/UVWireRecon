@@ -73,10 +73,10 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'a
         else:
             raise ValueError('Currently, only "DCNN" are available as nn_arch')
     else:
-        raise ValueError('Check, if loading models is implemented yet')
-        # model = load_trained_model(args)
+        # raise ValueError('Check, if loading models is implemented yet')
+        model = load_trained_model(args)
         # model = ks.models.load_model(
-        #     'models/trained/trained_' + modelname + '_epoch_' + str(epoch[0]) + '_file_' + str(epoch[1]) + '.h5')
+            # 'models/trained/trained_' + modelname + '_epoch_' + str(epoch[0]) + '_file_' + str(epoch[1]) + '.h5')
 
     # plot model, install missing packages with conda install if it throws a module error
     try:
@@ -86,6 +86,7 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'a
         #TODO add function that produces a script for producing plot_mode.png
 
     adam = ks.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=0.1, decay=0.0)  # epsilon=1 for deep networks
+    # adam = ks.optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=0.1, decay=0.0)
     optimizer = adam  # Choose optimizer, only used if epoch == 0
 
     # model, batchsize = parallelize_model_to_n_gpus(model, n_gpu, batchsize)  # TODO compile after restart????
@@ -93,17 +94,22 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'a
 
     model.summary()
 
+    lr_metric = get_lr_metric(optimizer)
+
     if epoch[0] == 0:
         model.compile(
             loss='mean_squared_error',
             optimizer=optimizer,
-            metrics=['mean_absolute_error'])
+            metrics=['mean_absolute_error'])    # , lr_metric])
 
     print "\nTraining begins in Epoch:\t", epoch
 
     if mode == 'train':
         model.save(args.folderOUT + "models/model_initial.hdf5")
         model.save_weights(args.folderOUT + "models/weights_initial.hdf5")
+
+
+
         model = fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_events=None, tb_logger=tb_logger)
         # history_test = evaluate_model(args, model, files['val'], batchsize, var_targets, epoch, n_events=None)
         # save_train_and_test_statistics_to_txt(model, history_train, history_test, epoch, files, batchsize, var_targets)
@@ -252,11 +258,13 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     epochlogger = EpochLevelPerformanceLogger(args=args, files=files['val'], var_targets=var_targets)
     batchlogger = BatchLevelPerformanceLogger(display=100, steps_per_epoch=train_steps_per_epoch, args=args)
 
-    # # lr = None
+    K.set_value(model.optimizer.lr, 0.00001)
+
+    # lr = None
     print 'Set learning rate to ' + str(K.get_value(model.optimizer.lr))
     # # TODO implement lr rate schedule
-    # # lr, lr_decay = schedule_learning_rate(model, epoch_i, n_gpu, args.splitted_files['train'], lr_initial=0.003, manual_mode=(False, None, 0.0, None))
-    # # lr, lr_decay = schedule_learning_rate(model, epoch_i, n_gpu, train_files, lr_initial=0.003,
+    # lr, lr_decay = schedule_learning_rate(model, epoch_i, n_gpu, args.splitted_files['train'], lr_initial=0.003, manual_mode=(False, None, 0.0, None))
+    # lr, lr_decay = schedule_learning_rate(model, epoch_i, n_gpu, train_files, lr_initial=0.003,
     # #                                       manual_mode=(True, 0.0006, 0.07, lr))
 
     callbacks.append(csvlogger)
@@ -265,6 +273,10 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     callbacks.append(batchlogger)
     callbacks.append(epochlogger)
 
+    # cbks = [ks.callbacks.LearningRateScheduler(lambda epoch: 0.001),
+    #         ks.callbacks.TensorBoard(write_graph=False)]
+
+    epoch = (int(epoch[0]), epoch[1])
     print 'training from:', epoch
 
     print 'training events:', train_steps_per_epoch*batchsize
@@ -280,6 +292,8 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
         validation_data=validation_data,
         validation_steps=validation_steps,
         callbacks=callbacks)
+        # callbacks=cbks)
+
     model.save_weights(args.folderOUT + "models/weights_epoch_" + str(epoch[0]+epoch[1]) + ".hdf5")
 
     print 'Model performance\tloss\t\tmean_abs_err'
@@ -342,24 +356,33 @@ def save_train_and_test_statistics_to_txt(model, history_train, history_test, ep
         f_out.write('\n')
 
 def load_trained_model(args):
+    nb_weights = args.num_weights
     print "===================================== load Model ==============================================="
     try:
-        print "%smodels/(model/weights)-%s.hdf5" % (args.folderMODEL, args.nb_weights)
+        print "%smodels/(model/weights)-%s.hdf5" % (args.folderMODEL, nb_weights)
         print "================================================================================================\n"
         try:
-            model = k.models.load_model(args.folderMODEL + "models/model-initial.hdf5")
-            model.load_weights(args.folderMODEL + "models/weights-" + args.nb_weights + ".hdf5")
+            model = ks.models.load_model(args.folderMODEL + "models/model_initial.hdf5")
+            model.load_weights(args.folderMODEL + "models/weights-" + nb_weights + ".hdf5")
         except:
-            model = k.models.load_model(args.folderMODEL + "models/model-" + args.nb_weights + ".hdf5")
+            model = ks.models.load_model(args.folderMODEL + "models/model-" + nb_weights + ".hdf5")
         os.system("cp %s %s" % (args.folderMODEL + "history.csv", args.folderOUT + "history.csv"))
-        if args.nb_weights=='final':
+        if nb_weights=='final':
             epoch_start = 1+int(np.genfromtxt(args.folderOUT+'history.csv', delimiter=',', names=True)['epoch'][-1])
             print epoch_start
         else:
-            epoch_start = 1+int(args.nb_weights)
-    except:
+            epoch_start = 1+int(nb_weights)
+    except Exception, e:
         print "\t\tMODEL NOT FOUND!\n"
+        print str(e)
         exit()
+    return model
+
+
+def get_lr_metric(optimizer):
+    def lr(y_true, y_pred):
+        return optimizer.lr
+    return lr
 
 # def get_model(args):
     # def def_model():
@@ -434,8 +457,10 @@ def load_trained_model(args):
 # Program Start
 # ----------------------------------------------------------
 if __name__ == '__main__':
+
+    args, files = parseInput()
+
     try:
-        args, files = parseInput()
         main(args=args, files=files)
     except KeyboardInterrupt:
         print ' >> Interrupted << '

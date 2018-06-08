@@ -23,11 +23,15 @@ def main():
     print number
 
     for idx in xrange(len(files)):
-        if idx >= 25:
+        if idx >= 5:
             break
             # print idx, 'of', number
         # wf_temp, ys_temp, event_info = generator.next()
         event_info = generator.next()
+        print event_info['MCTime'][0:1,0]
+        print event_info['CCCollectionTime'][0:1,0]
+        print event_info['G4Time'][0:1,0]
+        print ''
         ys_temp = np.asarray([event_info['MCEnergy'][:,0],
                          event_info['MCPosX'][:,0],
                          event_info['MCPosY'][:,0],
@@ -43,7 +47,7 @@ def main():
         # print ys.shape
 
 
-    plot_input_correlations(ys, folderOUT)
+    # plot_input_correlations(ys, folderOUT)
 
     # timeToZfit(ys, folderOUT)
 
@@ -82,7 +86,7 @@ def plot_input_correlations_heat(ys, folderOUT):
                 plt.setp(axarr[x, y].get_xticklabels(), visible=False)
                 plt.setp(axarr[x, y].get_yticklabels(), visible=False)
 
-    axarr[0, 0].set_xlim([500,3500])
+    axarr[0, 0].set_xlim([500, 3500])
     axarr[1, 0].set_xlim([-200, 200])
     axarr[2, 0].set_xlim([-200, 200])
     axarr[3, 0].set_xlim([-200, 200])
@@ -150,7 +154,7 @@ def timeToZfit(ys, folderOUT):
     from scipy.optimize import curve_fit
     import numpy as np
 
-    popt, pcov = curve_fit(linearfunc, ys.T[:,4], np.abs(ys.T[:,3]))
+    popt, pcov = curve_fit(linearfunc, ys.T[:, 4], np.abs(ys.T[:, 3]))
     print popt
     print np.sqrt(np.diag(pcov))
 
@@ -158,6 +162,11 @@ def timeToZfit(ys, folderOUT):
 
     plt.plot(ys.T[:, 4], np.abs(ys.T[:, 3]), label='data', marker='.')
     plt.plot(a, linearfunc(a, *popt), color='red')
+    plt.show()
+    plt.draw()
+
+    plt.clf()
+    plt.scatter(ys.T[:, 4], -1.71 * ys.T[:, 4] + 1949.89)
     plt.show()
     plt.draw()
 

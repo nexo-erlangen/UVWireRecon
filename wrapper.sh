@@ -1,6 +1,4 @@
-#!/bin/bash
-
-timestamp() {
+tamp() {
 	date +"%y%m%d-%H%M"
 }
 timestampSEC() {
@@ -11,7 +9,7 @@ TIMESTAMP=$(timestamp)
 TIMESTAMPSEC=$(timestampSEC)
 
 #check ob auf GPU mit Hilfe von $HOST ?
-PWD=$VAULT/PhD/DeepLearning/UV-wire/
+PWD=/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/
 DATA="${PWD}Data/"
 FOLDERRUNS="${PWD}TrainingRuns/"
 CODEFOLDER=$HPC/UVWireRecon/
@@ -72,4 +70,5 @@ else
 	echo
 	echo "Run Folder:   " $FOLDERRUNS$RUN
 fi
+
 

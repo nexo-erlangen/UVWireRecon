@@ -5,6 +5,8 @@
 import keras as ks
 import os
 from sys import path
+from keras import backend as K
+
 path.append('/home/hpc/capm/sn0515/UVWireRecon')
 
 from utilities.input_utilities import *
@@ -62,13 +64,24 @@ class BatchLevelPerformanceLogger(ks.callbacks.Callback):
         self.seen += 1
         self.averageLoss += logs.get('loss')
         self.averageMAE += logs.get('mean_absolute_error')
+
+        # if self.seen % 100 == 0:
+        #     print logs.keys()
+
+        # self.averageValLoss += logs.get('val_loss')
+        # self.averageValMAE += logs.get('val_mean_absolute_error')
         if self.seen % self.display == 0:
             averaged_loss = self.averageLoss / self.display
             averaged_mae = self.averageMAE / self.display
+            averaged_ValLoss = self.averageValLoss / self.display
+            averaged_ValMAE = self.averageValMAE / self.display
+
             batchnumber_float = (self.seen - self.display / 2.) / float(self.steps_per_epoch) # + self.epoch - 1  # start from zero
-            self.loglist.append('\n{0}\t{1}\t{2}\t{3}'.format(self.seen, batchnumber_float, averaged_loss, averaged_mae))
+            self.loglist.append('\n{0}\t{1}\t{2}\t{3}\t{4}\t{5}'.format(self.seen, batchnumber_float, averaged_loss, averaged_mae, averaged_ValLoss, averaged_ValMAE))
             self.averageLoss = 0
             self.averageMAE = 0
+            self.averageValLoss = 0
+            self.averageValMAE = 0
 
     def on_epoch_begin(self, epoch, logs={}):
         self.loglist = []
@@ -98,6 +111,7 @@ class EpochLevelPerformanceLogger(ks.callbacks.Callback):
 
     def on_train_begin(self, logs={}):
         self.losses = []
+        # self.val_losses = []
         if self.args.resume:
             os.system("cp %s %s" % (self.args.folderMODEL + "save.p", self.args.folderOUT + "save.p"))
         else:
@@ -125,7 +139,8 @@ class EpochLevelPerformanceLogger(ks.callbacks.Callback):
                                      'val_loss': logs['val_loss'], 'val_mean_absolute_error': logs['val_mean_absolute_error']}
         pickle.dump(self.dict_out, open(self.args.folderOUT + "save.p", "wb"))
         on_epoch_end_plots(folderOUT=self.args.folderOUT, epoch=epoch, data=self.dict_out[epoch])
-        plot_traininghistory(args)
+        # print logs.keys()
+
 
         # plot_train_and_test_statistics(modelname)
         # plot_weights_and_activations(test_files[0][0], n_bins, class_type, xs_mean, swap_4d_channels, modelname,

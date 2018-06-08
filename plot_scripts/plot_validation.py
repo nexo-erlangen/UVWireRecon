@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib as mpl
+from plot_scripts.plot_traininghistory import *
 mpl.use('PDF')
 import matplotlib.pyplot as plt
 
@@ -19,8 +20,9 @@ def on_epoch_end_plots(folderOUT, epoch, data):
     plot_scatter(data['Y_TRUE'][:,1], data['Y_PRED'][:,1], 'True X [mm]', 'DNN X [mm]', folderOUT + 'prediction_X_'+str(epoch)+'.png')
     plot_scatter(data['Y_TRUE'][:,2], data['Y_PRED'][:,2], 'True Y [mm]', 'DNN Y [mm]', folderOUT + 'prediction_Y_'+str(epoch)+'.png')
     plot_scatter(data['Y_TRUE'][:,3], data['Y_PRED'][:,3], 'True Time [mu sec]', 'DNN Time [mu sec]', folderOUT + 'prediction_time_'+str(epoch)+'.png')
-    plot_scatter(-1.71 * data['Y_TRUE'][:, 3] + 925.95, -1.71 * data['Y_PRED'][:, 3] + 925.95, 'True Z [mm]', 'DNN Z [mm]',
+    plot_scatter(-1.71 * data['Y_TRUE'][:, 3] + 1949.89, -1.71 * data['Y_PRED'][:, 3] + 1949.89, 'True Z [mm]', 'DNN Z [mm]',
                  folderOUT + 'prediction_Z_' + str(epoch) + '.png')
+    plot_traininghistory(folderOUT)
     return
 
 
