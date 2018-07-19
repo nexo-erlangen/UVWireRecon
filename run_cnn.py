@@ -55,16 +55,18 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
     print epoch
     if epoch[0] == 0:
         if nn_arch is 'DCNN':
-            model = create_shared_dcnn_network()
+            # model = create_shared_dcnn_network()
+            model = create_shared_DEEPcnn_network()
         elif nn_arch is 'ResNet':
             raise ValueError('Currently, this is not implemented')
             # model = create_vgg_like_model(n_bins, batchsize, nb_classes=class_type[0], dropout=0.1,
             #                               n_filters=(64, 64, 64, 64, 64, 64, 128, 128, 128, 128),
             #                               swap_4d_channels=swap_4d_channels)
         elif nn_arch is 'Inception':
+            model = create_inception_network()
             # model = create_convolutional_lstm(n_bins, batchsize, nb_classes=class_type[0], dropout=0.1,
             #                                   n_filters=(16, 16, 32, 32, 32, 32, 64, 64))
-            raise ValueError('Currently, this is not implemented')
+            # raise ValueError('Currently, this is not implemented')
         elif nn_arch is 'Conv_LSTM':
             raise ValueError('Currently, this is not implemented')
             # model = create_convolutional_lstm(n_bins, batchsize, nb_classes=class_type[0], dropout=0.1,
@@ -280,7 +282,7 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     epochlogger = EpochLevelPerformanceLogger(args=args, files=files['val'], var_targets=var_targets)
     batchlogger = BatchLevelPerformanceLogger(display=100, steps_per_epoch=train_steps_per_epoch, args=args)
 
-    K.set_value(model.optimizer.lr, 0.00001)
+    # K.set_value(model.optimizer.lr, 0.00001)
 
     # lr = None
     print 'Set learning rate to ' + str(K.get_value(model.optimizer.lr))
