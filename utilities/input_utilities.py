@@ -3,6 +3,7 @@
 import sys
 import os
 import stat
+import cPickle as pickle
 
 # ----------------------------------------------------------
 # Program Functions
@@ -43,73 +44,114 @@ def parseInput():
     parser.add_argument('-g', '--gpu', type=int, dest='num_gpu', default=1, choices=[1, 2, 3, 4], help='Number of GPUs')
     parser.add_argument('-e', '--epoch', type=int, dest='num_epoch', default=1, help='nb Epochs')
     parser.add_argument('-b', '--batch', type=int, dest='batchsize', default=16, help='Batch Size')
-    # parser.add_argument('-multi', dest='multiplicity', default='SS', help='Choose Event Multiplicity (SS / SS+MS)')
-    parser.add_argument('-w', '--weights', dest='num_weights', default=0, help='Load weights from Epoch')
-    # parser.add_argument('-position', dest='position', default=['S5'], choices=['S2', 'S5', 'S8'], help='sources position')
+    parser.add_argument('-w', '--weights', dest='num_weights', type=int, default=0, help='Load weights from Epoch')
+    parser.add_argument('-s', '--source', dest='sources', default=['GammaExp'], nargs="*", choices=['GammaExp', 'Th228', 'Co60', 'Ra226'], help='sources for training/validation')
+    parser.add_argument('-p', '--position', dest='position', default=['Uni'], nargs='*', choices=['Uni', 'S2', 'S5', 'S8'], help='source position')
+    parser.add_argument('-v', '--valid', dest='mode', default='train', choices=['train', 'mc', 'data'], help='mode of operation (train/eval (mc/data))')
+    parser.add_argument('--events', dest='events', default=2000, type=int, help='number of validation events')
+    parser.add_argument('--multi', dest='multiplicity', default='SS', choices=['SS', 'SS+MS'], help='Choose Event Multiplicity (SS / SS+MS)')
     parser.add_argument('--resume', dest='resume', action='store_true', help='Resume Training')
     parser.add_argument('--test', dest='test', action='store_true', help='Only reduced data')
+    parser.add_argument('--new', dest='new', action='store_true', help='Process new validation events')
     args, unknown = parser.parse_known_args()
 
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
 
-    folderIN, files = {}, {}
-    args.sources = ["unss", 'unms']
-    endings = {
-        'unss': "UniformGamma_ExpWFs_MC_SS/",
-        'unms': "UniformGamma_ExpWFs_MC_SS+MS/"}
+    folderIN = {}
 
+    if args.mode == 'data': mode = 'Data'
+    elif args.mode == 'train' or args.mode == 'mc': mode = 'MC'
+    else: raise ValueError('check mode!')
+
+    args.endings = {}
     for source in args.sources:
-        folderIN[source] = os.path.join(os.path.join(args.folderIN,''), endings[source])
-        files[source] = [os.path.join(folderIN[source], f) for f in os.listdir(folderIN[source]) if os.path.isfile(os.path.join(folderIN[source], f))]
-        print 'Input  Folder: (', source, ')\t', folderIN[source]
+        for pos in args.position:
+            args.endings[source+pos+mode+args.multiplicity] = source + '_WFs_' + pos + '_' + mode + '_' + args.multiplicity
+
+    endings_to_pop = []
+    for ending in args.endings:
+        folderIN[ending] = os.path.join(os.path.join(args.folderIN,''), args.endings[ending])
+        try:
+            if not os.path.isdir(folderIN[ending]): raise OSError
+            print 'Input  Folder:\t\t', folderIN[ending]
+        except OSError:
+            endings_to_pop.append(ending)
+    for ending in endings_to_pop:
+        args.endings.pop(ending)
+
     args.folderOUT = os.path.join(os.path.join(args.folderRUNS,args.folderOUT),'')
     args.folderMODEL = os.path.join(os.path.join(os.path.join(args.folderRUNS,''),args.folderMODEL),'')
     args.folderIN = folderIN
 
     adjustPermissions(args.folderOUT)
 
-    if args.resume == True:
+    if args.resume == True or args.mode != 'train':
         if type(args.num_weights) == int: args.num_weights = str(args.num_weights).zfill(3)
     else:
         args.num_weights = 0
     if not os.path.exists(args.folderOUT+'models'): os.makedirs(args.folderOUT+'models')
 
+    if args.mode == 'data':
+        args.var_targets = None
+
     print 'Output Folder:\t\t'  , args.folderOUT
     if args.resume: print 'Model Folder:\t\t', args.folderMODEL
     print 'Number of GPU:\t\t', args.num_gpu
+    print 'Load Epoch:\t', args.num_weights
     print 'Number of Epoch:\t', args.num_epoch
     print 'BatchSize:\t\t', args.batchsize, '\n'
 
-    return args, files
+    return args
 
-def splitFiles(args, files, frac_train, frac_val):
+def splitFiles(args, mode, frac_train, frac_val):
     import cPickle as pickle
-    if args.resume:
-        os.system("cp %s %s" % (args.folderMODEL + "splitted_files.p", args.folderOUT + "splitted_files.p"))
-        print 'load splitted files from %s' % (args.folderMODEL + "splitted_files.p")
-        return pickle.load(open(args.folderOUT + "splitted_files.p", "rb"))
-    else:
-        import random
-        splitted_files= {'train': {}, 'val': {}, 'test': {}}
-        print "Source\tTotal\tTrain\tValid\tTest"
-        for source in args.sources:
-            if (frac_train[source] + frac_val[source]) > 1.0 : raise ValueError('check file fractions!')
-            num_train = int(round(len(files[source]) * frac_train[source]))
-            num_val   = int(round(len(files[source]) * frac_val[source]))
-            random.shuffle(files[source])
-            if not args.test:
-                splitted_files['train'][source] = files[source][0 : num_train]
-                splitted_files['val'][source]   = files[source][num_train : num_train + num_val]
-                splitted_files['test'][source]  = files[source][num_train + num_val : ]
+    files = {}
+    if mode == 'train':
+        if args.resume:
+            os.system("cp %s %s" % (args.folderMODEL + "splitted_files.p", args.folderOUT + "splitted_files.p"))
+            print 'load splitted files from %s' % (args.folderMODEL + "splitted_files.p")
+            return pickle.load(open(args.folderOUT + "splitted_files.p", "rb"))
+        else:
+            import random
+            splitted_files= {'train': {}, 'val': {}, 'test': {}}
+            print "\tSource\t\tTotal\tTrain\tValid\tTest"
+            for ending in args.endings:
+                if (frac_train[ending] + frac_val[ending]) > 1.0 : raise ValueError('check file fractions!')
+                files[ending] = [os.path.join(args.folderIN[ending], f) for f in os.listdir(args.folderIN[ending]) if
+                                 os.path.isfile(os.path.join(args.folderIN[ending], f))]
+                random.shuffle(files[ending])
+                num_train = int(round(len(files[ending]) * frac_train[ending]))
+                num_val = int(round(len(files[ending]) * frac_val[ending]))
+                if not args.test:
+                    splitted_files['train'][ending] = files[ending][0 : num_train]
+                    splitted_files['val'][ending]   = files[ending][num_train : num_train + num_val]
+                    splitted_files['test'][ending]  = files[ending][num_train + num_val : ]
+                else:
+                    splitted_files['val'][ending]   = files[ending][0:1]
+                    splitted_files['test'][ending]  = files[ending][1:2]
+                    splitted_files['train'][ending] = files[ending][2:3]
+                print "%s\t\t%i\t%i\t%i\t%i" % (ending, len(files[ending]), len(splitted_files['train'][ending]), len(splitted_files['val'][ending]), len(splitted_files['test'][ending]))
+            pickle.dump(splitted_files, open(args.folderOUT + "splitted_files.p", "wb"))
+            return splitted_files
+    elif mode == 'mc':
+        files_training = pickle.load(open(args.folderOUT + "splitted_files.p", "rb"))
+        for ending in args.endings:
+            if ending in files_training['val'].keys() or ending in files_training['test'].keys():
+                files[ending] = files_training['val'][ending] + files_training['test'][ending]
             else:
-                splitted_files['val'][source]   = files[source][0:1]
-                splitted_files['test'][source]  = files[source][1:2]
-                splitted_files['train'][source] = files[source][2:3]
-            print "%s\t%i\t%i\t%i\t%i" % (source, len(files[source]), len(splitted_files['train'][source]), len(splitted_files['val'][source]), len(splitted_files['test'][source]))
-        pickle.dump(splitted_files, open(args.folderOUT + "splitted_files.p", "wb"))
-        return splitted_files
+                files[ending] = [os.path.join(args.folderIN[ending], f) for f in os.listdir(args.folderIN[ending]) if
+                                 os.path.isfile(os.path.join(args.folderIN[ending], f))]
+        print 'Input  File:\t\t', (args.folderOUT + "splitted_files.p")
+        return files
+    elif mode == 'data':
+        for ending in args.endings:
+            files[ending] = [os.path.join(args.folderIN[ending], f) for f in os.listdir(args.folderIN[ending]) if
+                             os.path.isfile(os.path.join(args.folderIN[ending], f))]
+        return files
+    else:
+        raise ValueError('mode is not valid')
 
 def adjustPermissions(path):
     # set this folder to read/writeable/exec

@@ -6,6 +6,7 @@ import warnings
 import numpy as np
 import h5py
 import random
+import cPickle as pickle
 
 #------------- Function used for supplying images to the GPU -------------#
 def generate_batches_from_files(files, batchsize, class_type=None, f_size=None, yield_mc_info=0):
@@ -90,10 +91,37 @@ def encode_targets(y_dict, batchsize, class_type=None):
         raise ValueError('Class type ' + str(class_type) + ' not supported!')
     return train_y
 
-def predict_mc(model, generator):
+def predict_events(model, generator):
     X, Y_TRUE, EVENT_INFO = generator.next()
     Y_PRED = np.asarray(model.predict(X, 10))
     return (Y_PRED, Y_TRUE, EVENT_INFO)
+
+def get_events(args, files, model, fOUT):
+    try:
+        if args.new: raise IOError
+        spec = pickle.load(open(fOUT, "rb"))
+        if args.events > len(spec['Y_TRUE']): raise IOError
+    except IOError:
+        if model == None: print 'model not found and not events file found' ; exit()
+        events_per_batch = 50
+        if args.events % events_per_batch != 0: raise ValueError('choose event number in multiples of %f events'%(events_per_batch))
+        iterations = round_down(args.events, events_per_batch) / events_per_batch
+        gen = generate_batches_from_files(files, events_per_batch, class_type=args.var_targets, f_size=None, yield_mc_info=1)
+
+        Y_PRED, Y_TRUE = [], []
+        for i in xrange(iterations):
+            print i*events_per_batch, ' of ', iterations*events_per_batch
+            Y_PRED_temp, Y_TRUE_temp, EVENT_INFO_temp = predict_events(model, gen)
+            Y_PRED.extend(Y_PRED_temp)
+            Y_TRUE.extend(Y_TRUE_temp)
+            if i == 0: EVENT_INFO = EVENT_INFO_temp
+            else:
+                for key in EVENT_INFO:
+                    EVENT_INFO[key] = np.concatenate((EVENT_INFO[key], EVENT_INFO_temp[key]))
+
+        spec = {'Y_PRED': np.asarray(Y_PRED), 'Y_TRUE': np.asarray(Y_TRUE), 'EVENT_INFO': EVENT_INFO}
+        pickle.dump(spec, open(fOUT, "wb"))
+    return spec
 
 def getNumEvents(files):
     if isinstance(files, list): pass
@@ -104,7 +132,7 @@ def getNumEvents(files):
     counter = 0
     for filename in files:
         f = h5py.File(str(filename), 'r')
-        counter += f['MCEnergy'].shape[0]
+        counter += f['MCEventNumber'].shape[0]
         f.close()
     return counter
 

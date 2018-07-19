@@ -5,10 +5,11 @@ import matplotlib as mpl
 from plot_scripts.plot_traininghistory import *
 mpl.use('PDF')
 import matplotlib.pyplot as plt
-
+import matplotlib.mlab as mlab
+import os
 from sys import path
 path.append('/home/hpc/capm/sn0515/UVWireRecon')
-
+from math import atan2,degrees
 
 # ----------------------------------------------------------
 # Plots
@@ -20,104 +21,157 @@ def on_epoch_end_plots(folderOUT, epoch, data):
     plot_scatter(data['Y_TRUE'][:,1], data['Y_PRED'][:,1], 'True X [mm]', 'DNN X [mm]', folderOUT + 'prediction_X_'+str(epoch)+'.png')
     plot_scatter(data['Y_TRUE'][:,2], data['Y_PRED'][:,2], 'True Y [mm]', 'DNN Y [mm]', folderOUT + 'prediction_Y_'+str(epoch)+'.png')
     plot_scatter(data['Y_TRUE'][:,3], data['Y_PRED'][:,3], 'True Time [mu sec]', 'DNN Time [mu sec]', folderOUT + 'prediction_time_'+str(epoch)+'.png')
-    plot_scatter(-1.71 * data['Y_TRUE'][:, 3] + 1949.89, -1.71 * data['Y_PRED'][:, 3] + 1949.89, 'True Z [mm]', 'DNN Z [mm]',
+    plot_scatter(fromTimeToZ(data['Y_TRUE'][:, 3]), fromTimeToZ(data['Y_PRED'][:, 3]), 'True Z [mm]', 'DNN Z [mm]',
                  folderOUT + 'prediction_Z_' + str(epoch) + '.png')
     plot_traininghistory(folderOUT)
     return
 
 
-def make_plots(folderOUT, dataIn, epoch, sources, position):
-    import os
-    os.system("mkdir -m 770 -p %s " % (folderOUT + "/2prediction-spectrum/"))
-    os.system("mkdir -m 770 -p %s " % (folderOUT + "/3prediction-scatter/" ))
-    os.system("mkdir -m 770 -p %s " % (folderOUT + "/4residual-histo/"     ))
-    os.system("mkdir -m 770 -p %s " % (folderOUT + "/5residual-scatter/"   ))
-    os.system("mkdir -m 770 -p %s " % (folderOUT + "/6residual-mean/"      ))
-    os.system("mkdir -m 770 -p %s " % (folderOUT + "/7residual-sigma/"))
-    os.system("mkdir -m 770 -p %s " % (folderOUT + "/8residual-violin/"))
+def validation_mc_plots(folderOUT, data, epoch, sources, position):
+    dir_spectrum = "/2prediction-spectrum/"
+    dir_scatter = "/3prediction-scatter/"
+    dir_residual = "/4residual-histo/"
+    for dir in [dir_spectrum, dir_scatter, dir_residual]:
+        os.system("mkdir -m 770 -p %s " % (folderOUT + dir))
+    # os.system("mkdir -m 770 -p %s " % (folderOUT + "/5residual-mean/"      ))
+    # os.system("mkdir -m 770 -p %s " % (folderOUT + "/7residual-sigma/"))
 
-    name_CNN = 'DNN'
-    name_EXO = 'EXO Recon'
+    name_DNN = 'DNN'
+    name_EXO = 'EXO-Recon'
     name_True = 'True'
     peakpos = 2614.5
 
-    if ('th' in sources or 'ga' in sources) and position == 'S5':
-        CalibrateSelf = True
-    else:
-        CalibrateSelf = False
-        dataIn_Ref = pickle.load(open(folderOUT + '../thms-S5/spectrum_events_' + epoch + '_thms-S5.p', "rb"))
+    plot_diagonal(x=data['Y_TRUE'][:, 0], y=data['Y_PRED'][:, 0], xlabel=name_True, ylabel=name_DNN, mode='Energy',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Energy_DNN_' + epoch + '.pdf'))
+    plot_diagonal(x=data['Y_TRUE'][:, 0], y=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], xlabel=name_True,
+                  ylabel=name_EXO, mode='Energy',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Energy_EXO_' + epoch + '.pdf'))
+    plot_diagonal(x=data['Y_PRED'][:, 0], y=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], xlabel=name_DNN,
+                  ylabel=name_EXO, mode='Energy',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Energy_Both_' + epoch + '.pdf'))
 
-    data = {}
-    data_Ref = {}
-    for E_List_str in ['E_True', 'E_CNN', 'E_EXO']:
-        data[E_List_str] = {'SS': dataIn[E_List_str][dataIn['isSS'] == True],
-                            'MS': dataIn[E_List_str][dataIn['isSS'] == False],
-                            'SSMS': dataIn[E_List_str]}
-        if not CalibrateSelf:
-            data_Ref[E_List_str] = {'SS': dataIn_Ref[E_List_str][dataIn_Ref['isSS'] == True],
-                                    'MS': dataIn_Ref[E_List_str][dataIn_Ref['isSS'] == False],
-                                    'SSMS': dataIn_Ref[E_List_str]}
+    plot_diagonal(x=data['Y_TRUE'][:, 1], y=data['Y_PRED'][:, 1], xlabel=name_True, ylabel=name_DNN, mode='X',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_X_DNN_' + epoch + '.pdf'))
+    plot_diagonal(x=data['Y_TRUE'][:, 1], y=data['EVENT_INFO']['CCPosX'][:, 0], xlabel=name_True,
+                  ylabel=name_EXO, mode='X',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_X_EXO_' + epoch + '.pdf'))
 
-        for Multi in ['SS', 'MS']:
-            CalibrationFactor = 1.0
-            # CalibrationOffset = 0.0
-            if len(data[E_List_str][Multi]) != 0:
-                if E_List_str != 'E_True':
-                    if CalibrateSelf:
-                        CalibrationFactor = calibrate_spectrum(data=data[E_List_str][Multi], name='', peakpos=peakpos, fOUT=None, isMC=True, peakfinder='max')
-                    else:
-                        CalibrationFactor = calibrate_spectrum(data=data_Ref[E_List_str][Multi], name='', peakpos=peakpos, fOUT=None, isMC=True, peakfinder='max')
-                    # if CalibrateSelf:
-                    #     CalibrationFactor, CalibrationOffset = doCalibration(data_True=data['E_True'][Multi], data_Recon=data[E_List_str][Multi])
-                    # else:
-                    #     CalibrationFactor, CalibrationOffset = doCalibration(data_True=data['E_True'][Multi], data_Recon=data[E_List_str][Multi])
-            #         print E_List_str, Multi, CalibrationFactor, CalibrationOffset
-            # data[E_List_str]['calib_' + Multi] = (data[E_List_str][Multi]-CalibrationOffset) / CalibrationFactor
-            # print E_List_str, Multi, CalibrationFactor
-            data[E_List_str]['calib_' + Multi] = data[E_List_str][Multi] / CalibrationFactor
-        data[E_List_str]['calib_SSMS'] = np.concatenate((data[E_List_str]['calib_SS'], data[E_List_str]['calib_MS']))
+    plot_diagonal(x=data['Y_TRUE'][:, 2], y=data['Y_PRED'][:, 2], xlabel=name_True, ylabel=name_DNN, mode='Y',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Y_DNN_' + epoch + '.pdf'))
+    plot_diagonal(x=data['Y_TRUE'][:, 2], y=data['EVENT_INFO']['CCPosY'][:, 0], xlabel=name_True,
+                  ylabel=name_EXO, mode='Y',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Y_EXO_' + epoch + '.pdf'))
 
-    obs = {}
-    obs['peak_pos'], obs['peak_sig'] = plot_spectrum(data_CNN=data['E_CNN']['SSMS'], data_EXO=data['E_EXO']['SSMS'],
-                                                     data_True=data['E_True']['SSMS'], fit=('th' in sources), peakpos=peakpos, isMC=True,
-                                                     fOUT=(folderOUT + '2prediction-spectrum/spectrum_' + sources + '_' + position + '_' + epoch + '_SSMS.pdf'))
-    obs['resid_pos'], obs['resid_sig'] = plot_residual_histo(dE=(data['E_True']['SSMS'] - data['E_CNN']['SSMS']), name_x=name_True, name_y=name_CNN,
-                        fOUT=folderOUT + '4residual-histo/histogram_' + sources + '_' + position + '_ConvNN_SSMS_' + epoch + '.pdf')
+    plot_diagonal(x=data['Y_TRUE'][:, 3], y=data['Y_PRED'][:, 3], xlabel=name_True, ylabel=name_DNN, mode='Time',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Time_DNN_' + epoch + '.pdf'))
+    plot_diagonal(x=data['Y_TRUE'][:, 3], y=data['EVENT_INFO']['CCCollectionTime'][:, 0], xlabel=name_True,
+                  ylabel=name_EXO, mode='Time',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Time_EXO_' + epoch + '.pdf'))
 
-    # for Multi in ['SS', 'MS', 'SSMS', 'calib_SS', 'calib_MS', 'calib_SSMS']:
-    # for Multi in ['calib_SS', 'calib_MS', 'calib_SSMS']:
-    # for Multi in ['SSMS', 'calib_SS', 'calib_MS', 'calib_SSMS']:
-    for Multi in ['SSMS']:
-        # print 'plotting', Multi
-        plot_spectrum(data_CNN=data['E_CNN'][Multi], data_EXO=data['E_EXO'][Multi], data_True=data['E_True'][Multi], fit=('th' in sources), isMC=True,
-                      peakpos=peakpos, fOUT=(folderOUT + '/2prediction-spectrum/spectrum_' + sources + '_' + position + '_' + epoch + '_' + Multi + '.pdf'))
-        plot_residual_histo(dE=(data['E_True'][Multi] - data['E_EXO'][Multi]), name_x=name_True, name_y=name_EXO,
-                            fOUT=folderOUT + '/4residual-histo/histogram_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
-        plot_residual_histo(dE=(data['E_True'][Multi] - data['E_CNN'][Multi]), name_x=name_True, name_y=name_CNN,
-                            fOUT=folderOUT + '/4residual-histo/histogram_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
-        plot_scatter_hist2d(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
-                            fOUT=folderOUT + '/3prediction-scatter/prediction_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
-        plot_scatter_hist2d(E_x=data['E_True'][Multi], E_y=data['E_CNN'][Multi], name_x=name_True, name_y=name_CNN,
-                            fOUT=folderOUT + '/3prediction-scatter/prediction_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
-        plot_residual_hist2d(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
-                             fOUT=folderOUT + '/5residual-scatter/residual_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
-        plot_residual_hist2d(E_x=data['E_True'][Multi], E_y=data['E_CNN'][Multi], name_x=name_True, name_y=name_CNN,
-                             fOUT=folderOUT + '/5residual-scatter/residual_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
-        # plot_residual_hist2d(E_x=data['E_EXO'][Multi], E_y=data['E_CNN'][Multi], name_x=name_EXO, name_y=name_CNN,
-        #                      fOUT=folderOUT + '5residual-scatter/residual_' + sources + '_' + position + '_Both_Standard_' + Multi + '_' + epoch + '.pdf')
-        # plot_residual_hist2d(E_x=data['E_CNN'][Multi], E_y=data['E_EXO'][Multi], name_x=name_CNN, name_y=name_EXO,
-        #                      fOUT=folderOUT + '5residual-scatter/residual_' + sources + '_' + position + '_Both_ConvNN_' + Multi + '_' + epoch + '.pdf')
-        # plot_residual_scatter_mean(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
-        #                            fOUT=folderOUT + '6residual-mean/residual_mean_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
-        # plot_residual_scatter_mean(E_x=data['E_True'][Multi], E_y=data['E_CNN'][Multi], name_x=name_True, name_y=name_CNN,
-        #                            fOUT=folderOUT + '6residual-mean/residual_mean_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
-        # plot_residual_scatter_sigma(E_x=data['E_True'][Multi], E_CNN=data['E_CNN'][Multi], E_EXO=data['E_EXO'][Multi],
-        #                             name_x=name_True, name_CNN=name_CNN, name_EXO=name_EXO,
-        #                             fOUT=folderOUT + '7residual-sigma/residual_sigma_' + sources + '_' + position + '_' + Multi + '_' + epoch + '.pdf')
-        # plot_residual_violin(E_x=data['E_True'][Multi], E_CNN=data['E_CNN'][Multi], E_EXO=data['E_EXO'][Multi],
-        #                      name_x=name_True, name_CNN=name_CNN, name_EXO=name_EXO,
-        #                      fOUT=folderOUT + '8residual-violin/residual_' + sources + '_' + position + '_' + Multi + '_' + epoch + '.pdf')
-    return obs
+    plot_diagonal(x=fromTimeToZ(data['Y_TRUE'][:, 3]), y=fromTimeToZ(data['Y_PRED'][:, 3]), xlabel=name_True, ylabel=name_DNN, mode='Z',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Z_DNN_' + epoch + '.pdf'))
+    plot_diagonal(x=fromTimeToZ(data['Y_TRUE'][:, 3]), y=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), xlabel=name_True,
+                  ylabel=name_EXO, mode='Z',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Z_EXO_' + epoch + '.pdf'))
+
+    plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], dTrue=data['Y_TRUE'][:, 0],
+                  mode='Energy', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=data['Y_PRED'][:, 1], dEXO=data['EVENT_INFO']['CCPosX'][:, 0], dTrue=data['Y_TRUE'][:, 1],
+                  mode='X', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_X_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=data['Y_PRED'][:, 2], dEXO=data['EVENT_INFO']['CCPosY'][:, 0], dTrue=data['Y_TRUE'][:, 2],
+                  mode='Y', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Y_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=data['Y_PRED'][:, 3], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0], dTrue=data['Y_TRUE'][:, 3],
+                  mode='Time', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Time_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=fromTimeToZ(data['Y_PRED'][:, 3]), dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]),
+                  dTrue=fromTimeToZ(data['Y_TRUE'][:, 3]), mode='Z',
+                  fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Z_' + epoch + '.pdf'))
+
+    plot_residual_histo(dTrue=data['Y_TRUE'][:, 0], dDNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0],
+                        title='Energy', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                        fOUT=folderOUT + dir_residual + sources + '_' + position + '_Energy_' + epoch + '.pdf')
+    # plot_residual_histo(dTrue=data['Y_TRUE'][:, 1], dDNN=data['Y_PRED'][:, 1], dEXO=data['EVENT_INFO']['CCPosX'][:, 0],
+    #                     title='X', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+    #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_X_' + epoch + '.pdf')
+    # plot_residual_histo(dTrue=data['Y_TRUE'][:, 2], dDNN=data['Y_PRED'][:, 2], dEXO=data['EVENT_INFO']['CCPosY'][:, 0],
+    #                     title='Y', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+    #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_Y_' + epoch + '.pdf')
+    # plot_residual_histo(dTrue=data['Y_TRUE'][:, 3], dDNN=data['Y_PRED'][:, 3], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0],
+    #                     title='Time', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+    #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_Time_' + epoch + '.pdf')
+    # plot_residual_histo(dTrue=fromTimeToZ(data['Y_TRUE'][:, 3]), dDNN=fromTimeToZ(data['Y_PRED'][:, 3]),
+    #                     dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]),
+    #                     title='Z', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+    #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_Z_' + epoch + '.pdf')
+
+
+
+    # plot_scatter_hist2d(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
+    #                     fOUT=folderOUT + '/3prediction-scatter/prediction_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
+    # plot_scatter_hist2d(E_x=data['E_True'][Multi], E_y=data['E_CNN'][Multi], name_x=name_True, name_y=name_CNN,
+    #                     fOUT=folderOUT + '/3prediction-scatter/prediction_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
+    # plot_residual_hist2d(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
+    #                      fOUT=folderOUT + '/5residual-scatter/residual_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
+    # plot_residual_hist2d(E_x=data['E_True'][Multi], E_y=data['E_CNN'][Multi], name_x=name_True, name_y=name_CNN,
+    #                      fOUT=folderOUT + '/5residual-scatter/residual_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
+
+def validation_data_plots(folderOUT, data, epoch, sources, position):
+    name_DNN = 'DNN'
+    name_EXO = 'EXO-Recon'
+    peakpos = 2614.5
+
+    plot_diagonal(x=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], y=data['Y_PRED'][:, 0], xlabel=name_EXO,
+                  ylabel=name_DNN, mode='Energy',
+                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
+    plot_diagonal(x=data['EVENT_INFO']['CCPosX'][:, 0], y=data['Y_PRED'][:, 1], xlabel=name_EXO, ylabel=name_DNN, mode='X',
+                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_X_' + epoch + '.pdf'))
+    plot_diagonal(x=data['EVENT_INFO']['CCPosY'][:, 0], y=data['Y_PRED'][:, 2], xlabel=name_EXO, ylabel=name_DNN, mode='Y',
+                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Y_' + epoch + '.pdf'))
+    plot_diagonal(x=data['EVENT_INFO']['CCCollectionTime'][:, 0], y=data['Y_PRED'][:, 3], xlabel=name_EXO, ylabel=name_DNN, mode='Time',
+                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Time_' + epoch + '.pdf'))
+    plot_diagonal(x=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), y=fromTimeToZ(data['Y_PRED'][:, 3]),
+                  xlabel=name_EXO, ylabel=name_DNN, mode='Z',
+                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Z_' + epoch + '.pdf'))
+
+    plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], dTrue=None,
+                  mode='Energy', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=data['Y_PRED'][:, 1], dEXO=data['EVENT_INFO']['CCPosX'][:, 0], dTrue=None,
+                  mode='X', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_X_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=data['Y_PRED'][:, 2], dEXO=data['EVENT_INFO']['CCPosY'][:, 0], dTrue=None,
+                  mode='Y', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Y_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=data['Y_PRED'][:, 3], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0], dTrue=None,
+                  mode='Time', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Time_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=fromTimeToZ(data['Y_PRED'][:, 3]), dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]),
+                  dTrue=None, mode='Z',
+                  fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Z_' + epoch + '.pdf'))
+
+    plot_residual_histo(dTrue=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], dDNN=data['Y_PRED'][:, 0], dEXO=None,
+                        title='Energy', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Energy_' + epoch + '.pdf')
+    plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosX'][:, 0], dDNN=data['Y_PRED'][:, 1], dEXO=None,
+                        title='X', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_X_' + epoch + '.pdf')
+    plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosY'][:, 0], dDNN=data['Y_PRED'][:, 2], dEXO=None,
+                        title='Y', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Y_' + epoch + '.pdf')
+    plot_residual_histo(dTrue=data['EVENT_INFO']['CCCollectionTime'][:, 0], dDNN=data['Y_PRED'][:, 3], dEXO=None,
+                        title='Time', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Time_' + epoch + '.pdf')
+    plot_residual_histo(dTrue=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), dDNN=fromTimeToZ(data['Y_PRED'][:, 3]),
+                        dEXO=None,
+                        title='Z', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Z_' + epoch + '.pdf')
+
+
+
+    # plot_scatter_hist2d(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
+    #                     fOUT=folderOUT + '/3prediction-scatter/prediction_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
+    # plot_scatter_hist2d(E_x=data['E_True'][Multi], E_y=data['E_CNN'][Multi], name_x=name_True, name_y=name_CNN,
+    #                     fOUT=folderOUT + '/3prediction-scatter/prediction_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
+    # plot_residual_hist2d(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
+    #                      fOUT=folderOUT + '/5residual-scatter/residual_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
+    # plot_residual_hist2d(E_x=data['E_True'][Multi], E_y=data['E_CNN'][Multi], name_x=name_True, name_y=name_CNN,
+    #                      fOUT=folderOUT + '/5residual-scatter/residual_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
+
 
 # ----------------------------------------------------------
 # Plots
@@ -125,6 +179,9 @@ def make_plots(folderOUT, dataIn, epoch, sources, position):
 def doCalibration(data_True, data_Recon):
     m, b = np.polyfit(data_True, data_Recon, 1)
     return m, b
+
+def fromTimeToZ(data):
+    return -1.71 * data + 1949.89
 
 def fit_spectrum(data, peakpos, fit, name, color, isMC, peakfinder='max', zorder=3):
     hist, bin_edges = np.histogram(data, bins=1200, range=(0, 12000), density=False)
@@ -217,28 +274,117 @@ def calibrate_spectrum(data, name, peakpos, fOUT, isMC, peakfinder):
     if fOUT is not None: pp.close()
     return CalibrationFactor
 
-def plot_spectrum(data_CNN, data_EXO, peakpos, fit, fOUT, isMC, data_True=None):
-    # print '==========='
-    # print 'plot spectrum\t isMC:\t', isMC
-    # print '==========='
-    if data_True is not None: fit_spectrum(data=data_True, peakpos=peakpos, fit=False, name="MC", color='k', isMC=True)
-    peak_pos, peak_sig = fit_spectrum(data=data_CNN, peakpos=peakpos, fit=fit, name="DNN", color='blue', isMC=isMC, zorder=5)
-    fit_spectrum(data=data_EXO, peakpos=peakpos, fit=fit , name="EXO Recon", color='firebrick', isMC=isMC, zorder=3)
-    plt.xlabel('Energy [keV]')
+def plot_spectrum(dCNN, dEXO, dTrue, mode, fOUT):
+    hist_DNN, bin_edges = np.histogram(dCNN, bins=1200, range=(-6000, 6000), density=True)
+    if dEXO is not None:
+        hist_EXO, bin_edges = np.histogram(dEXO, bins=1200, range=(-6000, 6000), density=True)
+    hist_True, bin_edges = np.histogram(dTrue, bins=1200, range=(-6000, 6000), density=True)
+    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    # plt.fill_between(bin_centres, 0.0, hist_True, facecolor='black', alpha=0.3, interpolate=True)
+    # plt.plot(bin_centres, hist_True, color='k', label='MC', lw=0.5)
+    plt.hist(dTrue, bins=1200, range=(-6000, 6000), density=True, histtype='stepfilled', align='mid', color='k', alpha=0.3, lw=0.0)
+    plt.step(bin_centres, hist_True, where='mid', color='k', label='MC', lw=0.7)
+    if dEXO is not None:
+        plt.step(bin_centres, hist_EXO, where='mid', color='firebrick', label='EXO', lw=1.1)
+    plt.step(bin_centres, hist_DNN, where='mid', color='blue', label='DNN', lw=1.1)
+
+    plt.xlabel(mode)
     plt.ylabel('Probability')
-    leg = plt.legend(loc="lower left")
-    leg.set_zorder(20)
-    # plt.xlim(xmin=600, xmax=2600) #for Co60 and Ra226
-    plt.xlim(xmin=600, xmax=3300) #for Th228
-    plt.ylim(ymin=5.e-5, ymax=5.e-2)
-    plt.grid(True)
+    plt.legend(loc='best')
     plt.gca().set_yscale('log')
+    if mode == 'Energy':
+        plt.xlim(xmin=550, xmax=2900)
+        plt.ylim(ymin=5.e-6, ymax=1.e-2)
+    elif mode == 'Time':
+        plt.xlim(xmin=1030, xmax=1140)
+        plt.gca().set_yscale('linear')
+    elif mode == 'Z':
+        plt.xlim(xmin=0, xmax=200)
+    elif mode in ['X', 'Y']:
+        plt.xlim(xmin=-200, xmax=200)
+        # plt.ylim(ymin=5.e-6, ymax=1.e-2)
+    else: raise ValueError('wrong mode chosen')
+    plt.grid(True)
     plt.savefig(fOUT, bbox_inches='tight')
-    # plt.savefig(fOUT[:-4] + "_res" + fOUT[-4:], bbox_inches='tight')
     plt.clf()
     plt.close()
-    if peakpos is not None: return peak_pos, peak_sig
-    else: return
+
+def plot_diagonal(x,y, xlabel, ylabel, mode, fOUT):
+    # Create figure
+    dE = y - x
+
+    if mode == 'Energy':
+        lowE = 550
+        upE = 2900
+        resE = 100
+        gridsize = 100
+        shifts = [200,400,600,800]
+        shifts_res = [50,100]
+    elif mode == 'Time':
+        lowE = 1020
+        upE = 1140
+        resE = 10
+        gridsize = 100
+        shifts = [10, 20, 30, 40]
+        shifts_res = [5]
+    elif mode in ['X', 'Y', 'Z']:
+        if mode == 'Z': lowE = 0
+        else: lowE = -200
+        upE = 200
+        resE = 20
+        gridsize = 100
+        shifts = [20, 40, 60, 80]
+        shifts_res = [5, 10, 15]
+
+    diag = np.asarray([lowE, upE])
+    extent1 = [lowE, upE, lowE, upE]
+    extent2 = [lowE, upE, -resE, resE]
+    # plt.ion()
+
+    fig, (ax1, ax2) = plt.subplots(2, sharex=True, gridspec_kw = {'height_ratios':[3, 1]}, figsize=(8.5,11.5)) #, sharex=True) #, gridspec_kw = {'height_ratios':[3, 1]})
+    # plt.subplots_adjust(bottom=0.1, right=0.95, top=0.95, left=0.1, wspace=0.0)
+    fig.subplots_adjust(wspace=0, hspace=0.05)
+    ax1.set(aspect='equal', adjustable='box-forced')
+    ax1.set(aspect='auto')
+
+    ax1.plot(diag, diag, 'k--', lw=2)
+    for idx,shift in enumerate(shifts):
+        ax1.plot(diag, diag+shift, 'k--', alpha=(0.8-0.2*idx), lw=2, label=str(shift))
+        ax1.plot(diag, diag-shift, 'k--', alpha=(0.8-0.2*idx), lw=2, label=str(shift))
+
+    xvals = [2700., 3100., 2500., 3100., 2300., 3100]
+    # labelLines(ax1.get_lines()[3:], xvals=xvals, align=True,color='k')
+
+    ax2.axhline(y=0.0, ls='--', lw=2, color='black')
+    for idx,shift in enumerate(shifts_res):
+        ax2.axhline(y=-shift, ls='--', lw=2, alpha=(0.7-0.3*idx), color='black')
+        ax2.axhline(y=shift , ls='--', lw=2, alpha=(0.7-0.3*idx), color='black')
+    # ax2.axhline(y=-200.0, ls='--', lw=2, color='black')
+    # ax2.axhline(y= 200.0, ls='--', lw=2, color='black')
+    ax1.set(ylabel=ylabel + ' ' + mode)
+    # ax2.set(xlabel=xlabel + ' Energy [keV]', ylabel='Residual [keV]')
+    ax2.set(xlabel=xlabel + ' ' + mode, ylabel='(%s - %s)' % (ylabel, xlabel))
+    ax1.set_xlim([lowE, upE])
+    ax1.set_ylim([lowE, upE])
+    ax2.set_ylim([-resE, resE])
+    # ax1.xaxis.grid(True)
+    # ax1.yaxis.grid(True)
+    # ax2.xaxis.grid(True)
+    # ax2.yaxis.grid(True)
+
+    fig.tight_layout()
+    fig.subplots_adjust(hspace=0.05)
+    plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
+    # plt.setp(ax2, yticks=[-100, -50, 0, 50, 100])
+    ax1.hexbin(x, y, bins='log', extent=extent1, gridsize=gridsize, mincnt=1, cmap=plt.get_cmap('viridis'), linewidths=0.1)
+    ax2.hexbin(x, dE, bins='log', extent=extent2, gridsize=(gridsize,gridsize/((upE-lowE)/(2*resE))), mincnt=1, cmap=plt.get_cmap('viridis'), linewidths=0.1)
+    # plt.show()
+    # raw_input("")
+    plt.savefig(fOUT)
+    plt.clf()
+    plt.close()
+
 
 # training curves
 def plot_losses(folderOUT, history):
@@ -266,33 +412,32 @@ def plot_losses(folderOUT, history):
     return
 
 # histogram of the data
-def plot_residual_histo(dE, name_x, name_y, fOUT):
-    from scipy.optimize import curve_fit
-    hist_dE, bin_edges, dummy = plt.hist(dE, bins=np.arange(-300,304,4), normed=True, facecolor='green', alpha=0.75)
+def plot_residual_histo(dTrue, dDNN, dEXO, title, name_True, name_DNN, name_EXO, fOUT):
+    delDNN = dDNN - dTrue
+    if dEXO is not None:
+        delEXO = dEXO - dTrue
+    limit = 100
+    bins = 200
+    if dEXO is not None:
+        hist_delEXO, bin_edges, _ = plt.hist(delEXO, bins=bins, range=(-limit, limit), density=True, label=name_EXO, facecolor='red', alpha=0.6)
+    hist_delDNN, bin_edges, _ = plt.hist(delDNN, bins=bins, range=(-limit, limit), density=True, label=name_DNN, facecolor='blue', alpha=0.6)
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
-    peak = np.argmax(hist_dE[np.digitize(-100, bin_centres):np.digitize(100, bin_centres)]) + np.digitize(-100,bin_centres)
-    coeff = [hist_dE[peak], bin_centres[peak], 50.0]
-    for i in range(5):
-        try:
-            low = np.digitize(coeff[1] - (2 * abs(coeff[2])), bin_centres)
-            up = np.digitize(coeff[1] + (2 * abs(coeff[2])), bin_centres)
-            coeff, var_matrix = curve_fit(gauss_zero, bin_centres[low:up], hist_dE[low:up], p0=coeff)
-            coeff_err = np.sqrt(np.absolute(np.diag(var_matrix)))
-        except:
-            print fOUT, '\tfit did not work\t', i
-            coeff, coeff_err = [hist_dE[peak], bin_centres[peak], 50.0*(i+1)], [0.0, 0.0, 0.0]
-    plt.plot(range(-200,200), gauss_zero(range(-200,200), *coeff), lw=2, color='red',
-             label='%s\n$\mu=%.1f \pm %.1f$\n$\sigma=%.1f \pm %.1f$'%(name_y, coeff[1], coeff_err[1], abs(coeff[2]), coeff_err[2]))
-    plt.ylabel('Residual (%s - %s) [keV]' % (name_y, name_x))
-    plt.xlabel('Probability')
+
+    # fitDNN = mlab.normpdf( bin_centres, np.mean(delDNN), np.std(delDNN))
+    # fitEXO = mlab.normpdf( bin_centres, np.mean(delEXO[dEXO>-800]), np.std(delEXO[dEXO>-800]))
+    # plt.plot(bin_centres, fitEXO, 'b--', linewidth=1.5, c='red')
+    # plt.plot(bin_centres, fitDNN, 'b--', linewidth=1.5, c='blue')
+
+    plt.title(title)
+    plt.xlabel('Residual (xxx - %s)' % (name_True))
+    plt.ylabel('Probability')
     plt.legend(loc="best")
-    plt.xlim(xmin=-250, xmax=250)
-    plt.ylim(ymin=0.0, ymax=0.025)
+    plt.xlim(xmin=-limit, xmax=limit)
+    # plt.ylim(ymin=0.0, ymax=0.1)
     plt.grid(True)
     plt.savefig(fOUT, bbox_inches='tight')
     plt.clf()
     plt.close()
-    return ((coeff[1], coeff_err[1]), (abs(coeff[2]), coeff_err[2]))
 
 # scatter
 def plot_scatter(E_x, E_y, name_x, name_y, fOUT):
@@ -654,6 +799,85 @@ def get_energy_spectrum_mixed(args, files, add):
     plt.close()
     plt.clf()
     return
+
+#Label line with line2D label data
+def labelLine(line,x,label=None,align=True,**kwargs):
+
+    ax = line.get_axes()
+    xdata = line.get_xdata()
+    ydata = line.get_ydata()
+
+    if (x < xdata[0]) or (x > xdata[-1]):
+        print('x label location is outside data range!')
+        return
+
+    #Find corresponding y co-ordinate and angle of the line
+    ip = 1
+    for i in range(len(xdata)):
+        if x < xdata[i]:
+            ip = i
+            break
+
+    y = ydata[ip-1] + (ydata[ip]-ydata[ip-1])*(x-xdata[ip-1])/(xdata[ip]-xdata[ip-1])
+
+    if not label:
+        label = line.get_label()
+
+    if align:
+        #Compute the slope
+        dx = xdata[ip] - xdata[ip-1]
+        dy = ydata[ip] - ydata[ip-1]
+        # ang = degrees(atan2(dy,dx))
+        # ang = degrees(dy/dx)
+        ang = 60.
+
+        #Transform to screen co-ordinates
+        pt = np.array([x,y]).reshape((1,2))
+        trans_angle = ax.transData.transform_angles(np.array((ang,)),pt)[0]
+
+    else:
+        trans_angle = 0
+
+    #Set a bunch of keyword arguments
+    if 'color' not in kwargs:
+        kwargs['color'] = line.get_color()
+
+    if ('horizontalalignment' not in kwargs) and ('ha' not in kwargs):
+        kwargs['ha'] = 'center'
+
+    if ('verticalalignment' not in kwargs) and ('va' not in kwargs):
+        kwargs['va'] = 'center'
+
+    if 'backgroundcolor' not in kwargs:
+        kwargs['backgroundcolor'] = ax.get_axis_bgcolor()
+
+    if 'clip_on' not in kwargs:
+        kwargs['clip_on'] = True
+
+    if 'zorder' not in kwargs:
+        kwargs['zorder'] = 2.5
+
+    ax.text(x,y,label,rotation=trans_angle,**kwargs)
+
+def labelLines(lines,align=True,xvals=None,**kwargs):
+
+    ax = lines[0].get_axes()
+    labLines = []
+    labels = []
+
+    #Take only the lines which have labels other than the default ones
+    for line in lines:
+        label = line.get_label()
+        if "_line" not in label:
+            labLines.append(line)
+            labels.append(label)
+
+    if xvals is None:
+        xmin,xmax = ax.get_xlim()
+        xvals = np.linspace(xmin,xmax,len(labLines)+2)[1:-1]
+
+    for line,x,label in zip(labLines,xvals,labels):
+        labelLine(line,x,label,align,**kwargs)
 
 # ----------------------------------------------------------
 # Final Plots

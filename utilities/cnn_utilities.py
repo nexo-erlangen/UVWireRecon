@@ -127,7 +127,7 @@ class EpochLevelPerformanceLogger(ks.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         Y_PRED, Y_TRUE, EVENT_INFO = [], [], []
         for i in xrange(self.val_iterations):
-            Y_PRED_temp, Y_TRUE_temp, EVENT_INFO_temp = predict_mc(self.model, self.val_gen)
+            Y_PRED_temp, Y_TRUE_temp, EVENT_INFO_temp = predict_events(self.model, self.val_gen)
             Y_PRED.extend(Y_PRED_temp)
             Y_TRUE.extend(Y_TRUE_temp)
             EVENT_INFO.extend(EVENT_INFO_temp)

@@ -15,17 +15,17 @@ from plot_scripts.plot_input_plots import *
 from models.shared_conv import *
 from plot_scripts.plot_traininghistory import *
 
-def main(args, files):
-    frac_train = {'unss': 0.90, 'unms': 0.00}
-    frac_val   = {'unss': 0.10, 'unms': 0.00}
+def main(args):
+    frac_train = {'GammaExpUniMCSS': 0.90}
+    frac_val   = {'GammaExpUniMCSS': 0.10}
 
-    splitted_files = splitFiles(args, files, frac_train=frac_train, frac_val=frac_val)
+    splitted_files = splitFiles(args, mode=args.mode, frac_train=frac_train, frac_val=frac_val)
 
     # plotInputCorrelation(args, splitted_files['train'], add='train')
     # plotInputCorrelation(args, splitted_files['val'], add='val')
 
-    executeCNN(args, splitted_files, args.var_targets, args.cnn_arch, args.batchsize, (args.num_weights, args.num_epoch), n_gpu=(args.num_gpu, 'avolkov'), mode='train',
-               shuffle=(False, None), tb_logger=False)
+    executeCNN(args, splitted_files, args.var_targets, args.cnn_arch, args.batchsize, (args.num_weights, args.num_epoch),
+               mode=args.mode, n_gpu=(args.num_gpu, 'avolkov'), shuffle=(False, None), tb_logger=False)
 
     print 'final plots \t start'
     # plot.final_plots(folderOUT=args.folderOUT, obs=pickle.load(open(args.folderOUT + "save.p", "rb")))
@@ -35,8 +35,7 @@ def main(args, files):
 
 
 
-def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'avolkov'), mode='train',
-               shuffle=(False, None), tb_logger=False):
+def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=(1, 'avolkov'), shuffle=(False, None), tb_logger=False):
     """
     Runs a convolutional neural network.
     :param class args: Contains parsed info about the run.
@@ -47,9 +46,9 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'a
     :param str nn_arch: Architecture of the neural network. Currently, only 'VGG' or 'WRN' are available.
     :param int batchsize: Batchsize that should be used for the cnn.
     :param (int/int) epoch: Declares if a previously trained model or a new model (=0) should be loaded.
+    :param str mode: Specifies what the function should do - train & test a model or evaluate (on mc/data) a 'finished' model?
+                     Currently, there are three modes available: 'train' & 'mc' & 'data'.
     :param (int/str) n_gpu: Number of gpu's that the model should be parallelized to [0] and the multi-gpu mode (e.g. 'avolkov').
-    :param str mode: Specifies what the function should do - train & test a model or evaluate a 'finished' model?
-                     Currently, there are two modes available: 'train' & 'eval'.
     :param (bool, None/int) shuffle: Declares if the training data should be shuffled before the next training epoch.
     :param bool tb_logger: Declares if a tb_callback should be used during training (takes longer to train due to overhead!).
     """
@@ -85,38 +84,61 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, n_gpu=(1, 'a
         print 'could not produce plot_model.png ---- try on CPU'
         #TODO add function that produces a script for producing plot_mode.png
 
-    adam = ks.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=0.1, decay=0.0)  # epsilon=1 for deep networks
-    # adam = ks.optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=0.1, decay=0.0)
-    optimizer = adam  # Choose optimizer, only used if epoch == 0
-
-    # model, batchsize = parallelize_model_to_n_gpus(model, n_gpu, batchsize)  # TODO compile after restart????
-    # if n_gpu[0] > 1: model.compile(loss=loss_opt[0], optimizer=optimizer, metrics=[loss_opt[1]])  # TODO check
-
-    model.summary()
-
-    lr_metric = get_lr_metric(optimizer)
-
-    if epoch[0] == 0:
-        model.compile(
-            loss='mean_squared_error',
-            optimizer=optimizer,
-            metrics=['mean_absolute_error'])    # , lr_metric])
-
-    print "\nTraining begins in Epoch:\t", epoch
-
     if mode == 'train':
+        model.summary()
+
+        adam = ks.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=0.1,
+                                  decay=0.0)  # epsilon=1 for deep networks
+        # adam = ks.optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=0.1, decay=0.0)
+        optimizer = adam  # Choose optimizer, only used if epoch == 0
+
+        # model, batchsize = parallelize_model_to_n_gpus(model, n_gpu, batchsize)  # TODO compile after restart????
+        # if n_gpu[0] > 1: model.compile(loss=loss_opt[0], optimizer=optimizer, metrics=[loss_opt[1]])  # TODO check
+
+        lr_metric = get_lr_metric(optimizer)
+
+        if epoch[0] == 0:
+            model.compile(
+                loss='mean_squared_error',
+                optimizer=optimizer,
+                metrics=['mean_absolute_error'])  # , lr_metric])
+
+        print "\nTraining begins in Epoch:\t", epoch
+
         model.save(args.folderOUT + "models/model_initial.hdf5")
         model.save_weights(args.folderOUT + "models/weights_initial.hdf5")
-
-
 
         model = fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_events=None, tb_logger=tb_logger)
         # history_test = evaluate_model(args, model, files['val'], batchsize, var_targets, epoch, n_events=None)
         # save_train_and_test_statistics_to_txt(model, history_train, history_test, epoch, files, batchsize, var_targets)
         model.save_weights(args.folderOUT + "models/weights_final.hdf5")
         model.save(args.folderOUT + "models/model_final.hdf5")
-    elif mode == 'eval':
-        raise ValueError('Check, if model evaluation is implemented yet')
+    elif mode == 'mc':
+        print 'Validate on MC events'
+
+        args.sources = "".join(sorted(args.sources))
+        args.position = "".join(sorted(args.position))
+
+        args.folderOUT += "1validation-data/" + args.sources + "-" + args.position + "/"
+        os.system("mkdir -p -m 770 %s " % (args.folderOUT))
+        data = get_events(args=args, files=files, model=model, fOUT=(args.folderOUT + "events_" + str(args.num_weights) + "_" + args.sources + "-" + args.position + ".p"))
+
+        validation_mc_plots(folderOUT=args.folderOUT, data=data, epoch=args.num_weights, sources=args.sources, position=args.position)
+    elif mode == 'data':
+        print 'Validate on real data events'
+
+        args.sources = "".join(sorted(args.sources))
+        args.position = "".join(sorted(args.position))
+
+        args.folderOUT += "0physics-data/" + str(args.num_weights) + '-' + args.sources + "-" + args.position + "/"
+        os.system("mkdir -p -m 770 %s " % (args.folderOUT))
+        data = get_events(args=args, files=files, model=model, fOUT=(
+        args.folderOUT + "events_" + str(args.num_weights) + "_" + args.sources + "-" + args.position + ".p"))
+
+        validation_data_plots(folderOUT=args.folderOUT, data=data, epoch=args.num_weights, sources=args.sources,
+                              position=args.position)
+
+        # raise ValueError('Check, if model mc evaluation is implemented yet')
         # After training is finished, investigate model performance
         # arr_energy_correct = make_performance_array_energy_correct(model, test_files[0][0], n_bins, class_type,
         #                                                            batchsize, xs_mean, swap_4d_channels, str_ident,
@@ -446,22 +468,14 @@ def get_lr_metric(optimizer):
     # return model, epoch_start
 
 # ----------------------------------------------------------
-# OLD
-# ----------------------------------------------------------
-# def predict_energy_reconstruction(model, generator):
-#     E_CNN_wfs, E_True, E_EXO, isSS = generator.next()
-#     E_CNN = np.asarray(model.predict(E_CNN_wfs, 100)[:, 0])
-#     return (E_CNN, E_True, E_EXO, isSS)
-
-# ----------------------------------------------------------
 # Program Start
 # ----------------------------------------------------------
 if __name__ == '__main__':
 
-    args, files = parseInput()
+    args = parseInput()
 
     try:
-        main(args=args, files=files)
+        main(args=args)
     except KeyboardInterrupt:
         print ' >> Interrupted << '
     finally:
