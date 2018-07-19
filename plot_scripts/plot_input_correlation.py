@@ -8,33 +8,32 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from sys import path
-path.append('/home/hpc/capm/sn0515/UVWireRecon')
+path.append('/home/hpc/capm/mppi053h/UVWireRecon')
 import utilities.generator as gen
 
 def main():
-    folderIN = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/UniformGamma_ExpWFs_MC_SS/'
+    folderIN = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/GammaExp_WFs_Uni_MC_SS/'
     # folderIN = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/EnergyCorrectionNewNew/'
     folderOUT = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/Dummy/'
 
     files = [os.path.join(folderIN, f) for f in os.listdir(folderIN) if os.path.isfile(os.path.join(folderIN, f))]
     # print files
     number = gen.getNumEvents(files)/len(files)
-    generator = gen.generate_batches_from_files(files, number, class_type='energy_and_position', f_size=None, yield_mc_info=2)
-    print number
+    generator = gen.generate_batches_from_files(files, number, class_type='energy_and_UV_position', f_size=None, yield_mc_info=2)
 
     for idx in xrange(len(files)):
-        if idx >= 5:
-            break
-            # print idx, 'of', number
+        # if idx >= 5:
+        #     break
+        print idx, 'of', len(files)
         # wf_temp, ys_temp, event_info = generator.next()
         event_info = generator.next()
-        print event_info['MCTime'][0:1,0]
-        print event_info['CCCollectionTime'][0:1,0]
-        print event_info['G4Time'][0:1,0]
-        print ''
+        # print event_info['MCTime'][0:1,0]
+        # print event_info['CCCollectionTime'][0:1,0]
+        # print event_info['G4Time'][0:1,0]
+        # print ''
         ys_temp = np.asarray([event_info['MCEnergy'][:,0],
-                         event_info['MCPosX'][:,0],
-                         event_info['MCPosY'][:,0],
+                         event_info['MCPosU'][:,0],
+                         event_info['MCPosV'][:,0],
                          event_info['MCPosZ'][:,0],
                          event_info['MCTime'][:,0]])
         # z_position = event_info['MCPosZ'][:, 0].reshape((1, 1))
@@ -47,7 +46,7 @@ def main():
         # print ys.shape
 
 
-    # plot_input_correlations(ys, folderOUT)
+    plot_input_correlations(ys, folderOUT)
 
     # timeToZfit(ys, folderOUT)
 
@@ -128,9 +127,9 @@ def plot_input_correlations(ys, folderOUT):
 
     ys = np.swapaxes(ys, 0, 1)
 
-    ys_data = DataFrame(ys, columns=['Energy', 'x-Position', 'y-Position', 'z-Position', 'Time'])
+    ys_data = DataFrame(ys, columns=['Energy', 'U-Position', 'V-Position', 'z-Position', 'Time'])
 
-    sm = scatter_matrix(ys_data, figsize=(25, 25), alpha=0.01, hist_kwds={'bins': 50})     # diagonal='kde')
+    sm = scatter_matrix(ys_data, figsize=(25, 25), alpha=0.02, hist_kwds={'bins': 50})     # diagonal='kde')
 
     for s in sm.reshape(-1):
         s.xaxis.label.set_size(16)
