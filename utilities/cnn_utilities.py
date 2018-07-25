@@ -46,10 +46,11 @@ class TensorBoardWrapper(ks.callbacks.TensorBoard):
 
 class BatchLevelPerformanceLogger(ks.callbacks.Callback):
     # Gibt loss aus über alle :display batches, gemittelt über die letzten :display batches
-    def __init__(self, display, steps_per_epoch, args):
+    def __init__(self, display, steps_per_epoch, args, validationfiles, var_targets, model, batchsize):
         ks.callbacks.Callback.__init__(self)
         self.seen = 0
         self.display = display
+        self.display2 = 10
         self.averageLoss = 0
         self.averageMAE = 0
         self.averageValLoss = 0
@@ -58,18 +59,22 @@ class BatchLevelPerformanceLogger(ks.callbacks.Callback):
         self.logfile_train_fname = self.args.folderOUT + 'log_train.txt'
         self.logfile_train = None
         self.steps_per_epoch = steps_per_epoch
-        # self.epoch = epoch
+        self.validationfiles = validationfiles
+        self.var_targets = var_targets
+        self.model = model
+        self.batchsize = batchsize
+        self.gen = generate_batches_from_files(self.validationfiles, 1, var_targets)
 
     def on_batch_end(self, batch, logs={}):
         self.seen += 1
         self.averageLoss += logs.get('loss')
         self.averageMAE += logs.get('mean_absolute_error')
 
-        # if self.seen % 100 == 0:
-        #     print logs.keys()
+        if self.seen % self.display2 == 0:
+            valLoss, valMae = tuple(self.model.evaluate_generator(self.gen, steps=1))
+            self.averageValLoss += valLoss
+            self.averageValMAE += valMae
 
-        # self.averageValLoss += logs.get('val_loss')
-        # self.averageValMAE += logs.get('val_mean_absolute_error')
         if self.seen % self.display == 0:
             averaged_loss = self.averageLoss / self.display
             averaged_mae = self.averageMAE / self.display
@@ -87,6 +92,8 @@ class BatchLevelPerformanceLogger(ks.callbacks.Callback):
         self.loglist = []
 
     def on_epoch_end(self, epoch, logs={}):
+        print '-=='
+        print logs.keys()
         self.logfile_train = open(self.logfile_train_fname, 'a+')
         if os.stat(self.logfile_train_fname).st_size == 0: self.logfile_train.write("#Batch\t#Batch_float\tLoss\tMAE\tVal-Loss\tVal-MAE")
 
@@ -133,8 +140,10 @@ class EpochLevelPerformanceLogger(ks.callbacks.Callback):
             EVENT_INFO.extend(EVENT_INFO_temp)
         # Eval_dict = {'Y_PRED': np.asarray(Y_PRED), 'Y_TRUE': np.asarray(Y_TRUE), 'EVENT_INFO': np.asarray(EVENT_INFO)}
         # obs = plot.make_plots(self.args.folderOUT, dataIn=dataIn, epoch=str(epoch), sources='th', position='S5')
+        # print EVENT_INFO
         self.dict_out = pickle.load(open(self.args.folderOUT + "save.p", "rb"))
-        self.dict_out[epoch] = {'Y_PRED': np.asarray(Y_PRED), 'Y_TRUE': np.asarray(Y_TRUE), 'EVENT_INFO': np.asarray(EVENT_INFO),
+        self.dict_out[epoch] = {'Y_PRED': np.asarray(Y_PRED), 'Y_TRUE': np.asarray(Y_TRUE), 'EVENT_INFO': EVENT_INFO,
+                                # 'CCPosU': np.asarray(EVENT_INFO['CCPosU'][0]), 'CCPosV': np.asarray(EVENT_INFO['CCPosV'][1]),
                                      'loss': logs['loss'], 'mean_absolute_error': logs['mean_absolute_error'],
                                      'val_loss': logs['val_loss'], 'val_mean_absolute_error': logs['val_mean_absolute_error']}
         pickle.dump(self.dict_out, open(self.args.folderOUT + "save.p", "wb"))

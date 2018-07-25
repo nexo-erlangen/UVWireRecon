@@ -77,6 +77,12 @@ def encode_targets(y_dict, batchsize, class_type=None):
         train_y[:,1] = y_dict['MCPosX'][:,0]  # dir_x
         train_y[:,2] = y_dict['MCPosY'][:,0]  # dir_y
         train_y[:,3] = y_dict['MCTime'][:,0]  # time (to calculate dir_z)
+    elif class_type == 'energy_and_UV_position':
+        train_y = np.zeros((batchsize, 4), dtype='float32')
+        train_y[:, 0] = y_dict['MCEnergy'][:, 0]  # energy
+        train_y[:, 1] = y_dict['MCPosU'][:, 0]  # dir_u
+        train_y[:, 2] = y_dict['MCPosV'][:, 0]  # dir_v
+        train_y[:, 3] = y_dict['MCTime'][:, 0]  # time (to calculate dir_z)
     elif class_type == 'energy':
         train_y = np.zeros((batchsize, 1), dtype='float32')
         train_y[:,0] = y_dict['MCEnergy'][:,0]  # energy

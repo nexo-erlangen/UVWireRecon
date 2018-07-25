@@ -39,7 +39,7 @@ def parseInput():
     parser.add_argument('-i', '--in', dest='folderIN', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/', help='folderIN Path')
     parser.add_argument('-r', '--runs', dest='folderRUNS', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/', help='folderRUNS Path')
     parser.add_argument('-m', '--model', dest='folderMODEL', type=str, default='Dummy', help='folderMODEL Path')
-    parser.add_argument('-t', '--targets', type=str, dest='var_targets', default='energy_and_position', help='Targets to train the network against')
+    parser.add_argument('-t', '--targets', type=str, dest='var_targets', default='energy_and_UV_position', help='Targets to train the network against')
     parser.add_argument('-a', '--arch', type=str, dest='cnn_arch', default='DCNN', choices=['DCNN', 'ResNet', 'Inception'], help='Choose network architecture')
     parser.add_argument('-g', '--gpu', type=int, dest='num_gpu', default=1, choices=[1, 2, 3, 4], help='Number of GPUs')
     parser.add_argument('-e', '--epoch', type=int, dest='num_epoch', default=1, help='nb Epochs')
@@ -136,7 +136,7 @@ def splitFiles(args, mode, frac_train, frac_val):
             pickle.dump(splitted_files, open(args.folderOUT + "splitted_files.p", "wb"))
             return splitted_files
     elif mode == 'mc':
-        files_training = pickle.load(open(args.folderOUT + "splitted_files.p", "rb"))
+        files_training = pickle.load(open(args.folderMODEL + "splitted_files.p", "rb"))
         for ending in args.endings:
             if ending in files_training['val'].keys() or ending in files_training['test'].keys():
                 files[ending] = files_training['val'][ending] + files_training['test'][ending]

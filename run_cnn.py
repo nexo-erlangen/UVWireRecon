@@ -89,7 +89,7 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
     if mode == 'train':
         model.summary()
 
-        adam = ks.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=0.1,
+        adam = ks.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08,
                                   decay=0.0)  # epsilon=1 for deep networks
         # adam = ks.optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=0.1, decay=0.0)
         optimizer = adam  # Choose optimizer, only used if epoch == 0
@@ -280,9 +280,8 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     modellogger = ks.callbacks.ModelCheckpoint(args.folderOUT + 'models/weights-{epoch:03d}.hdf5', save_weights_only=True, period=1)
     # lrscheduler = ks.callbacks.LearningRateScheduler(schedule, verbose=0)
     epochlogger = EpochLevelPerformanceLogger(args=args, files=files['val'], var_targets=var_targets)
-    batchlogger = BatchLevelPerformanceLogger(display=100, steps_per_epoch=train_steps_per_epoch, args=args)
-
-    # K.set_value(model.optimizer.lr, 0.00001)
+    batchlogger = BatchLevelPerformanceLogger(display=500, steps_per_epoch=train_steps_per_epoch, args=args, validationfiles=files['val'], var_targets=var_targets, model=model, batchsize = batchsize)
+    K.set_value(model.optimizer.lr, 0.0001)
 
     # lr = None
     print 'Set learning rate to ' + str(K.get_value(model.optimizer.lr))
