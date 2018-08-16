@@ -746,4 +746,3 @@ def create_inception_network():
 
     return Model(inputs=[visible_U_1, visible_V_1, visible_U_2, visible_V_2], outputs=[output_xyze])
 
-

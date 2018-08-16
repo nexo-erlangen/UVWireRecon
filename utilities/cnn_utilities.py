@@ -78,8 +78,8 @@ class BatchLevelPerformanceLogger(ks.callbacks.Callback):
         if self.seen % self.display == 0:
             averaged_loss = self.averageLoss / self.display
             averaged_mae = self.averageMAE / self.display
-            averaged_ValLoss = self.averageValLoss / self.display
-            averaged_ValMAE = self.averageValMAE / self.display
+            averaged_ValLoss = self.averageValLoss / self.display * self.display2
+            averaged_ValMAE = self.averageValMAE / self.display * self.display2
 
             batchnumber_float = (self.seen - self.display / 2.) / float(self.steps_per_epoch) # + self.epoch - 1  # start from zero
             self.loglist.append('\n{0}\t{1}\t{2}\t{3}\t{4}\t{5}'.format(self.seen, batchnumber_float, averaged_loss, averaged_mae, averaged_ValLoss, averaged_ValMAE))
@@ -92,8 +92,6 @@ class BatchLevelPerformanceLogger(ks.callbacks.Callback):
         self.loglist = []
 
     def on_epoch_end(self, epoch, logs={}):
-        print '-=='
-        print logs.keys()
         self.logfile_train = open(self.logfile_train_fname, 'a+')
         if os.stat(self.logfile_train_fname).st_size == 0: self.logfile_train.write("#Batch\t#Batch_float\tLoss\tMAE\tVal-Loss\tVal-MAE")
 
@@ -148,7 +146,6 @@ class EpochLevelPerformanceLogger(ks.callbacks.Callback):
                                      'val_loss': logs['val_loss'], 'val_mean_absolute_error': logs['val_mean_absolute_error']}
         pickle.dump(self.dict_out, open(self.args.folderOUT + "save.p", "wb"))
         on_epoch_end_plots(folderOUT=self.args.folderOUT, epoch=epoch, data=self.dict_out[epoch])
-        # print logs.keys()
 
 
         # plot_train_and_test_statistics(modelname)
