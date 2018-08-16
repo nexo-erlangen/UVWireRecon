@@ -83,8 +83,8 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
     try:
         ks.utils.plot_model(model, to_file=args.folderOUT+'/plot_model.png', show_shapes=True, show_layer_names=True)
     except ImportError:
-        print 'could not produce plot_model.png ---- try on CPU'
-        #TODO add function that produces a script for producing plot_mode.png
+        save_plot_model_script(folderOUT=args.folderOUT)
+        print 'could not produce plot_model.png ---- run generate_model_plot on CPU'
 
     if mode == 'train':
         model.summary()
@@ -407,66 +407,25 @@ def get_lr_metric(optimizer):
         return optimizer.lr
     return lr
 
-# def get_model(args):
-    # def def_model():
-    #     from keras.models import Sequential
-    #     from keras.layers import Dense, Dropout, Activation, Flatten, Convolution2D, MaxPooling2D
-    #     from keras.regularizers import l2, l1, l1l2
-    #
-    #     init = "glorot_uniform"
-    #     activation = "relu"
-    #     padding = "same"
-    #     regul = l2(1.e-2)
-    #     model = Sequential()
-    #     # convolution part
-    #     model.add(Convolution2D(16, 5, 3, border_mode=padding, init=init, W_regularizer=regul, input_shape=(1024, 76, 1)))
-    #     model.add(Activation(activation))
-    #     model.add(MaxPooling2D((4, 2), border_mode=padding))
-    #
-    #     model.add(Convolution2D(32, 5, 3, border_mode=padding, init=init, W_regularizer=regul))
-    #     model.add(Activation(activation))
-    #     model.add(MaxPooling2D((4, 2), border_mode=padding))
-    #
-    #     model.add(Convolution2D(64, 3, 3, border_mode=padding, init=init, W_regularizer=regul))
-    #     model.add(Activation(activation))
-    #     model.add(MaxPooling2D((2, 2), border_mode=padding))
-    #
-    #     model.add(Convolution2D(128, 3, 3, border_mode=padding, init=init, W_regularizer=regul))
-    #     model.add(Activation(activation))
-    #     model.add(MaxPooling2D((2, 2), border_mode=padding))
-    #
-    #     model.add(Convolution2D(256, 3, 3, border_mode=padding, init=init, W_regularizer=regul))
-    #     model.add(Activation(activation))
-    #     model.add(MaxPooling2D((2, 2), border_mode=padding))
-    #
-    #     model.add(Convolution2D(256, 3, 3, border_mode=padding, init=init, W_regularizer=regul))
-    #     model.add(Activation(activation))
-    #     model.add(MaxPooling2D((2, 2), border_mode=padding))
-    #
-    #     # regression part
-    #     model.add(Flatten())
-    #     model.add(Dense(32, activation=activation, init=init, W_regularizer=regul))
-    #     model.add(Dense(8, activation=activation, init=init, W_regularizer=regul))
-    #     model.add(Dense(1 , activation=activation, init=init))
-    #     return model
-
-    # if not args.resume:
-    #     from keras import optimizers
-    #     print "===================================== new Model =====================================\n"
-    #     model = def_model()
-    #     epoch_start = 0
-    #     # optimizer = optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0) #normal
-    #     optimizer = optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=(1.+1.e-5)) #test1
-    #     model.compile(
-    #         loss='mean_squared_error',
-    #         optimizer=optimizer,
-    #         metrics=['mean_absolute_error'])
-    # else:
-    #
-    # print "\nFirst Epoch:\t", epoch_start
-    # print model.summary(), "\n"
-    # print "\n"
-    # return model, epoch_start
+def save_plot_model_script(folderOUT):
+    """
+    Function for saving python script for to producing model_plot.png
+    """
+    with open(folderOUT+'generate_model_plot.py', 'w') as f_out:
+        f_out.write('#!/usr/bin/env python' + '\n')
+        f_out.write('try:' + '\n')
+        f_out.write('\timport keras as ks' + '\n')
+        f_out.write('except ImportError:' + '\n')
+        f_out.write('\tprint "Keras not available. Activate tensorflow_cpu environment"' + '\n')
+        f_out.write('\traise SystemExit("=========== Error -- Exiting the script ===========")' + '\n')
+        f_out.write('model = ks.models.load_model("%smodels/model_initial.hdf5")'%(folderOUT) + '\n')
+        f_out.write('try:' + '\n')
+        f_out.write('\tks.utils.plot_model(model, to_file="%s/plot_model.png", show_shapes=True, show_layer_names=True)'%(folderOUT) + '\n')
+        f_out.write('except OSError:' + '\n')
+        f_out.write('\tprint "could not produce plot_model.png ---- try on CPU"' + '\n')
+        f_out.write('\traise SystemExit("=========== Error -- Exiting the script ===========")' + '\n')
+        f_out.write('print "=========== Generating Plot Finished ==========="' + '\n')
+        f_out.write('\n')
 
 # ----------------------------------------------------------
 # Program Start
