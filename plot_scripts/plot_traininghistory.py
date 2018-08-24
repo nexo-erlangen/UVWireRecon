@@ -34,7 +34,6 @@ def plot_traininghistory(folderOUT):
         plt.clf()
 
 
-
 """
 folderIN = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/180718-1431-54/' #180606-1511-44/180607-1014-05'
 # folderOUT = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/180612-1614-49/'

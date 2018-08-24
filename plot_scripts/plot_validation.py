@@ -60,17 +60,17 @@ def validation_mc_plots(folderOUT, data, epoch, sources, position):
                   ylabel=name_EXO, mode='Energy',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Energy_Both_' + epoch + '.pdf'))
 
-    plot_diagonal(x=data['Y_TRUE'][:, 1], y=data['Y_PRED'][:, 1], xlabel=name_True, ylabel=name_DNN, mode='X',
-                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_X_DNN_' + epoch + '.pdf'))
-    plot_diagonal(x=data['Y_TRUE'][:, 1], y=data['EVENT_INFO']['CCPosX'][:, 0], xlabel=name_True,
-                  ylabel=name_EXO, mode='X',
-                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_X_EXO_' + epoch + '.pdf'))
+    plot_diagonal(x=data['Y_TRUE'][:, 1], y=data['Y_PRED'][:, 1], xlabel=name_True, ylabel=name_DNN, mode='U',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_U_DNN_' + epoch + '.pdf'))
+    plot_diagonal(x=data['Y_TRUE'][:, 1], y=data['EVENT_INFO']['CCPosU'][:, 0], xlabel=name_True,
+                  ylabel=name_EXO, mode='U',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_U_EXO_' + epoch + '.pdf'))
 
-    plot_diagonal(x=data['Y_TRUE'][:, 2], y=data['Y_PRED'][:, 2], xlabel=name_True, ylabel=name_DNN, mode='Y',
-                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Y_DNN_' + epoch + '.pdf'))
-    plot_diagonal(x=data['Y_TRUE'][:, 2], y=data['EVENT_INFO']['CCPosY'][:, 0], xlabel=name_True,
-                  ylabel=name_EXO, mode='Y',
-                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Y_EXO_' + epoch + '.pdf'))
+    plot_diagonal(x=data['Y_TRUE'][:, 2], y=data['Y_PRED'][:, 2], xlabel=name_True, ylabel=name_DNN, mode='V',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_V_DNN_' + epoch + '.pdf'))
+    plot_diagonal(x=data['Y_TRUE'][:, 2], y=data['EVENT_INFO']['CCPosV'][:, 0], xlabel=name_True,
+                  ylabel=name_EXO, mode='V',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_V_EXO_' + epoch + '.pdf'))
 
     plot_diagonal(x=data['Y_TRUE'][:, 3], y=data['Y_PRED'][:, 3], xlabel=name_True, ylabel=name_DNN, mode='Time',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Time_DNN_' + epoch + '.pdf'))
@@ -83,13 +83,21 @@ def validation_mc_plots(folderOUT, data, epoch, sources, position):
     plot_diagonal(x=fromTimeToZ(data['Y_TRUE'][:, 3]), y=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), xlabel=name_True,
                   ylabel=name_EXO, mode='Z',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Z_EXO_' + epoch + '.pdf'))
+    plot_diagonal(x=np.sqrt(data['Y_TRUE'][:, 1] * data['Y_TRUE'][:, 1] + data['Y_TRUE'][:, 2] * data['Y_TRUE'][:, 2]),
+                  y=np.sqrt(4 / 3 * (data['Y_PRED'][:, 1] * data['Y_PRED'][:, 1] + data['Y_PRED'][:, 2] * data['Y_PRED'][:, 2] - data['Y_PRED'][:, 1] * data['Y_PRED'][:, 2])),
+                  xlabel=name_EXO, ylabel=name_DNN, mode='R',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_R_DNN_' + epoch + '.pdf'))
+    plot_diagonal(x=np.sqrt(data['Y_TRUE'][:, 1] * data['Y_TRUE'][:, 1] + data['Y_TRUE'][:, 2] * data['Y_TRUE'][:, 2]),
+                  y=np.sqrt(4 / 3 * (data['EVENT_INFO']['CCPosU'][:, 0] * data['EVENT_INFO']['CCPosU'][:, 0] + data['EVENT_INFO']['CCPosV'][:, 0] * data['EVENT_INFO']['CCPosV'][:, 0] - data['EVENT_INFO']['CCPosU'][:, 0] * data['EVENT_INFO']['CCPosV'][:, 0])),
+                  xlabel=name_EXO, ylabel=name_DNN, mode='R',
+                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_R_EXO_' + epoch + '.pdf'))
 
     plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], dTrue=data['Y_TRUE'][:, 0],
                   mode='Energy', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
-    plot_spectrum(dCNN=data['Y_PRED'][:, 1], dEXO=data['EVENT_INFO']['CCPosX'][:, 0], dTrue=data['Y_TRUE'][:, 1],
-                  mode='X', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_X_' + epoch + '.pdf'))
-    plot_spectrum(dCNN=data['Y_PRED'][:, 2], dEXO=data['EVENT_INFO']['CCPosY'][:, 0], dTrue=data['Y_TRUE'][:, 2],
-                  mode='Y', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Y_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=data['Y_PRED'][:, 1], dEXO=data['EVENT_INFO']['CCPosU'][:, 0], dTrue=data['Y_TRUE'][:, 1],
+                  mode='U', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_U_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=data['Y_PRED'][:, 2], dEXO=data['EVENT_INFO']['CCPosV'][:, 0], dTrue=data['Y_TRUE'][:, 2],
+                  mode='V', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_V_' + epoch + '.pdf'))
     plot_spectrum(dCNN=data['Y_PRED'][:, 3], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0], dTrue=data['Y_TRUE'][:, 3],
                   mode='Time', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Time_' + epoch + '.pdf'))
     plot_spectrum(dCNN=fromTimeToZ(data['Y_PRED'][:, 3]), dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]),
@@ -97,21 +105,21 @@ def validation_mc_plots(folderOUT, data, epoch, sources, position):
                   fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Z_' + epoch + '.pdf'))
 
     plot_residual_histo(dTrue=data['Y_TRUE'][:, 0], dDNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0],
-                        title='Energy', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                        title='Energy', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO, limit=100,
                         fOUT=folderOUT + dir_residual + sources + '_' + position + '_Energy_' + epoch + '.pdf')
-    # plot_residual_histo(dTrue=data['Y_TRUE'][:, 1], dDNN=data['Y_PRED'][:, 1], dEXO=data['EVENT_INFO']['CCPosX'][:, 0],
-    #                     title='X', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
-    #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_X_' + epoch + '.pdf')
-    # plot_residual_histo(dTrue=data['Y_TRUE'][:, 2], dDNN=data['Y_PRED'][:, 2], dEXO=data['EVENT_INFO']['CCPosY'][:, 0],
-    #                     title='Y', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
-    #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_Y_' + epoch + '.pdf')
-    # plot_residual_histo(dTrue=data['Y_TRUE'][:, 3], dDNN=data['Y_PRED'][:, 3], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0],
-    #                     title='Time', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
-    #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_Time_' + epoch + '.pdf')
-    # plot_residual_histo(dTrue=fromTimeToZ(data['Y_TRUE'][:, 3]), dDNN=fromTimeToZ(data['Y_PRED'][:, 3]),
-    #                     dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]),
-    #                     title='Z', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
-    #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_Z_' + epoch + '.pdf')
+    plot_residual_histo(dTrue=data['Y_TRUE'][:, 1], dDNN=data['Y_PRED'][:, 1], dEXO=data['EVENT_INFO']['CCPosU'][:, 0],
+                        title='U', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                        fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_' + epoch + '.pdf')
+    plot_residual_histo(dTrue=data['Y_TRUE'][:, 2], dDNN=data['Y_PRED'][:, 2], dEXO=data['EVENT_INFO']['CCPosV'][:, 0],
+                        title='V', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                        fOUT=folderOUT + dir_residual + sources + '_' + position + '_V_' + epoch + '.pdf')
+    plot_residual_histo(dTrue=data['Y_TRUE'][:, 3], dDNN=data['Y_PRED'][:, 3], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0],
+                        title='Time', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                        fOUT=folderOUT + dir_residual + sources + '_' + position + '_Time_' + epoch + '.pdf')
+    plot_residual_histo(dTrue=fromTimeToZ(data['Y_TRUE'][:, 3]), dDNN=fromTimeToZ(data['Y_PRED'][:, 3]),
+                        dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]),
+                        title='Z', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                        fOUT=folderOUT + dir_residual + sources + '_' + position + '_Z_' + epoch + '.pdf')
 
 
 
@@ -132,10 +140,19 @@ def validation_data_plots(folderOUT, data, epoch, sources, position):
     plot_diagonal(x=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], y=data['Y_PRED'][:, 0], xlabel=name_EXO,
                   ylabel=name_DNN, mode='Energy',
                   fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
-    plot_diagonal(x=data['EVENT_INFO']['CCPosX'][:, 0], y=data['Y_PRED'][:, 1], xlabel=name_EXO, ylabel=name_DNN, mode='X',
-                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_X_' + epoch + '.pdf'))
-    plot_diagonal(x=data['EVENT_INFO']['CCPosY'][:, 0], y=data['Y_PRED'][:, 2], xlabel=name_EXO, ylabel=name_DNN, mode='Y',
+    plot_diagonal(x=data['EVENT_INFO']['CCPosU'][:, 0], y=data['Y_PRED'][:, 1], xlabel=name_EXO, ylabel=name_DNN, mode='U',
+                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_U_' + epoch + '.pdf'))
+    plot_diagonal(x=data['EVENT_INFO']['CCPosV'][:, 0], y=data['Y_PRED'][:, 2], xlabel=name_EXO, ylabel=name_DNN, mode='V',
+                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_V_' + epoch + '.pdf'))
+
+    plot_diagonal(x=data['EVENT_INFO']['CCPosY'][:, 0], y=(data['Y_PRED'][:, 2] + data['Y_PRED'][:, 1]) / np.sqrt(3), xlabel=name_EXO, ylabel=name_DNN,
+                  mode='Y',
                   fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Y_' + epoch + '.pdf'))
+    plot_diagonal(x=np.sqrt(data['EVENT_INFO']['CCPosY'][:, 0] * data['EVENT_INFO']['CCPosY'][:, 0] + data['EVENT_INFO']['CCPosX'][:, 0]*data['EVENT_INFO']['CCPosX'][:, 0]),
+                  y=np.sqrt(4 / 3 * (data['Y_PRED'][:, 1] * data['Y_PRED'][:, 1] + data['Y_PRED'][:, 2] * data['Y_PRED'][:, 2] - data['Y_PRED'][:, 1] * data['Y_PRED'][:, 2])),
+                  xlabel=name_EXO, ylabel=name_DNN, mode='R',
+                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_R_' + epoch + '.pdf'))
+
     plot_diagonal(x=data['EVENT_INFO']['CCCollectionTime'][:, 0], y=data['Y_PRED'][:, 3], xlabel=name_EXO, ylabel=name_DNN, mode='Time',
                   fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Time_' + epoch + '.pdf'))
     plot_diagonal(x=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), y=fromTimeToZ(data['Y_PRED'][:, 3]),
@@ -144,10 +161,10 @@ def validation_data_plots(folderOUT, data, epoch, sources, position):
 
     plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], dTrue=None,
                   mode='Energy', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
-    plot_spectrum(dCNN=data['Y_PRED'][:, 1], dEXO=data['EVENT_INFO']['CCPosX'][:, 0], dTrue=None,
-                  mode='X', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_X_' + epoch + '.pdf'))
-    plot_spectrum(dCNN=data['Y_PRED'][:, 2], dEXO=data['EVENT_INFO']['CCPosY'][:, 0], dTrue=None,
-                  mode='Y', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Y_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=data['Y_PRED'][:, 1], dEXO=data['EVENT_INFO']['CCPosU'][:, 0], dTrue=None,
+                  mode='U', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_U_' + epoch + '.pdf'))
+    plot_spectrum(dCNN=data['Y_PRED'][:, 2], dEXO=data['EVENT_INFO']['CCPosV'][:, 0], dTrue=None,
+                  mode='V', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_V_' + epoch + '.pdf'))
     plot_spectrum(dCNN=data['Y_PRED'][:, 3], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0], dTrue=None,
                   mode='Time', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Time_' + epoch + '.pdf'))
     plot_spectrum(dCNN=fromTimeToZ(data['Y_PRED'][:, 3]), dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]),
@@ -155,14 +172,14 @@ def validation_data_plots(folderOUT, data, epoch, sources, position):
                   fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Z_' + epoch + '.pdf'))
 
     plot_residual_histo(dTrue=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], dDNN=data['Y_PRED'][:, 0], dEXO=None,
-                        title='Energy', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                        title='Energy', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None, limit=100,
                         fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Energy_' + epoch + '.pdf')
-    plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosX'][:, 0], dDNN=data['Y_PRED'][:, 1], dEXO=None,
-                        title='X', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
-                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_X_' + epoch + '.pdf')
-    plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosY'][:, 0], dDNN=data['Y_PRED'][:, 2], dEXO=None,
-                        title='Y', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
-                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Y_' + epoch + '.pdf')
+    plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosU'][:, 0], dDNN=data['Y_PRED'][:, 1], dEXO=None,
+                        title='U', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_U_' + epoch + '.pdf')
+    plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosV'][:, 0], dDNN=data['Y_PRED'][:, 2], dEXO=None,
+                        title='V', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_V_' + epoch + '.pdf')
     plot_residual_histo(dTrue=data['EVENT_INFO']['CCCollectionTime'][:, 0], dDNN=data['Y_PRED'][:, 3], dEXO=None,
                         title='Time', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
                         fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Time_' + epoch + '.pdf')
@@ -311,7 +328,7 @@ def plot_spectrum(dCNN, dEXO, dTrue, mode, fOUT):
         plt.gca().set_yscale('linear')
     elif mode == 'Z':
         plt.xlim(xmin=0, xmax=200)
-    elif mode in ['X', 'Y']:
+    elif mode in ['X', 'Y', 'U', 'V']:
         plt.xlim(xmin=-200, xmax=200)
         # plt.ylim(ymin=5.e-6, ymax=1.e-2)
     else: raise ValueError('wrong mode chosen')
@@ -338,7 +355,14 @@ def plot_diagonal(x,y, xlabel, ylabel, mode, fOUT):
         gridsize = 100
         shifts = [10, 20, 30, 40]
         shifts_res = [5]
-    elif mode in ['X', 'Y', 'Z']:
+    elif mode == 'R':
+        lowE = 0
+        upE = 160
+        resE = 20
+        gridsize = 100
+        shifts = [10, 20, 30, 40]
+        shifts_res = [10, 20]
+    elif mode in ['X', 'Y', 'Z', 'U', 'V']:
         if mode == 'Z': lowE = 0
         else: lowE = -200
         upE = 200
@@ -422,11 +446,11 @@ def plot_losses(folderOUT, history):
     return
 
 # histogram of the data
-def plot_residual_histo(dTrue, dDNN, dEXO, title, name_True, name_DNN, name_EXO, fOUT):
+def plot_residual_histo(dTrue, dDNN, dEXO, title, name_True, name_DNN, name_EXO, fOUT, limit = 10):
     delDNN = dDNN - dTrue
     if dEXO is not None:
         delEXO = dEXO - dTrue
-    limit = 100
+
     bins = 200
     if dEXO is not None:
         hist_delEXO, bin_edges, _ = plt.hist(delEXO, bins=bins, range=(-limit, limit), density=True, label=name_EXO, facecolor='red', alpha=0.6)
