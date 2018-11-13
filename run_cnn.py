@@ -11,13 +11,14 @@ from keras import backend as K
 from utilities.input_utilities import *
 from utilities.generator import *
 from utilities.cnn_utilities import *
+from utilities.losses import *
 from plot_scripts.plot_input_plots import *
 from models.shared_conv import *
 from plot_scripts.plot_traininghistory import *
 
 def main(args):
-    frac_train = {'GammaExpUniMCSS': 0.90}
-    frac_val   = {'GammaExpUniMCSS': 0.10}
+    frac_train = {'GammaExpUniMCSS': 0.9}   # 0.9
+    frac_val   = {'GammaExpUniMCSS': 0.1}  # 0.1
 
     splitted_files = splitFiles(args, mode=args.mode, frac_train=frac_train, frac_val=frac_val)
 
@@ -32,7 +33,6 @@ def main(args):
     # plot_traininghistory(args)
 
     print 'final plots \t end'
-
 
 
 def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=(1, 'avolkov'), shuffle=(False, None), tb_logger=False):
@@ -52,11 +52,12 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
     :param (bool, None/int) shuffle: Declares if the training data should be shuffled before the next training epoch.
     :param bool tb_logger: Declares if a tb_callback should be used during training (takes longer to train due to overhead!).
     """
+
     print epoch
     if epoch[0] == 0:
         if nn_arch is 'DCNN':
             # model = create_shared_dcnn_network()
-            model = create_shared_DEEPcnn_network()
+            model = create_shared_DEEPcnn_network(var_targets=var_targets, inputImages=args.inputImages, multiplicity=args.multiplicity)
         elif nn_arch is 'ResNet':
             raise ValueError('Currently, this is not implemented')
             # model = create_vgg_like_model(n_bins, batchsize, nb_classes=class_type[0], dropout=0.1,
@@ -99,9 +100,17 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
 
         lr_metric = get_lr_metric(optimizer)
 
+
         if epoch[0] == 0:
             model.compile(
                 loss='mean_squared_error',
+                # loss='mean_absolute_error',
+                # loss=loss_mean_squared_relative_error,
+                # loss=loss_energy_and_position_reconstruction,
+                # loss=[loss_mean_relative_error, loss_mean_relative_error, loss_mean_relative_error, loss_mean_relative_error],
+                # loss=loss_mean_relative_error,
+                # loss='mean_absolute_percentage_error',
+                # loss=loss_uncertainty_gaussian_likelihood,
                 optimizer=optimizer,
                 metrics=['mean_absolute_error'])  # , lr_metric])
 
@@ -123,9 +132,10 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
 
         args.folderOUT += "1validation-data/" + args.sources + "-" + args.position + "/"
         os.system("mkdir -p -m 770 %s " % (args.folderOUT))
+
         data = get_events(args=args, files=files, model=model, fOUT=(args.folderOUT + "events_" + str(args.num_weights) + "_" + args.sources + "-" + args.position + ".p"))
 
-        validation_mc_plots(folderOUT=args.folderOUT, data=data, epoch=args.num_weights, sources=args.sources, position=args.position)
+        validation_mc_plots(folderOUT=args.folderOUT, data=data, epoch=args.num_weights, sources=args.sources, position=args.position, target=args.var_targets)
     elif mode == 'data':
         print 'Validate on real data events'
 
@@ -271,7 +281,7 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
         # validation_steps = int(min([ getNumEvents(files['val']), 5000 ]) / batchsize)
     else:
         # validation_data, validation_steps, callbacks = None, None, []
-        validation_data = generate_batches_from_files(files['val'], batchsize=batchsize, class_type=var_targets, yield_mc_info=0)
+        validation_data = generate_batches_from_files(files['val'], multiplicity=args.multiplicity, batchsize=batchsize, class_type=var_targets, yield_mc_info=0, inputImages=args.inputImages)
         validation_steps = int(min([getNumEvents(files['val']), 10000]) / batchsize)
 
     train_steps_per_epoch = int(getNumEvents(files['train']) / batchsize)
@@ -280,10 +290,10 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     modellogger = ks.callbacks.ModelCheckpoint(args.folderOUT + 'models/weights-{epoch:03d}.hdf5', save_weights_only=True, period=1)
     # lrscheduler = ks.callbacks.LearningRateScheduler(schedule, verbose=0)
     epochlogger = EpochLevelPerformanceLogger(args=args, files=files['val'], var_targets=var_targets)
-    batchlogger = BatchLevelPerformanceLogger(display=500, steps_per_epoch=train_steps_per_epoch, args=args, validationfiles=files['val'], var_targets=var_targets, model=model, batchsize = batchsize)
-    K.set_value(model.optimizer.lr, 0.00001)
+    batchlogger = BatchLevelPerformanceLogger(display=500, steps_per_epoch=train_steps_per_epoch, args=args, validationfiles=files['val'], var_targets=var_targets, model=model, batchsize=batchsize)
 
-    # lr = None
+    K.set_value(model.optimizer.lr, args.learningRate)
+
     print 'Set learning rate to ' + str(K.get_value(model.optimizer.lr))
     # # TODO implement lr rate schedule
     # lr, lr_decay = schedule_learning_rate(model, epoch_i, n_gpu, args.splitted_files['train'], lr_initial=0.003, manual_mode=(False, None, 0.0, None))
@@ -306,7 +316,7 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     print 'validation events:', validation_steps*batchsize
 
     model.fit_generator(
-        generate_batches_from_files(files['train'], batchsize=batchsize, class_type=var_targets, yield_mc_info=0),
+        generate_batches_from_files(files['train'], batchsize=batchsize, class_type=var_targets, yield_mc_info=0, inputImages=args.inputImages, multiplicity=args.multiplicity),
         steps_per_epoch=train_steps_per_epoch,
         epochs=epoch[0]+epoch[1],
         initial_epoch=epoch[0],
@@ -320,8 +330,8 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
     model.save_weights(args.folderOUT + "models/weights_epoch_" + str(epoch[0]+epoch[1]) + ".hdf5")
 
     print 'Model performance\tloss\t\tmean_abs_err'
-    print '\tTrain:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batches_from_files(files['train'], batchsize, var_targets), steps=50))
-    print '\tValid:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batches_from_files(files['val']  , batchsize, var_targets), steps=50))
+    print '\tTrain:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batches_from_files(files['train'], batchsize, class_type=var_targets, inputImages=args.inputImages, multiplicity=args.multiplicity), steps=50))
+    print '\tValid:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batches_from_files(files['val']  , batchsize, class_type=var_targets, inputImages=args.inputImages, multiplicity=args.multiplicity), steps=50))
     return model
 
 
@@ -345,7 +355,7 @@ def evaluate_model(args, model, files, batchsize, var_targets, epoch, n_events=N
         if n_events is not None: f_size = n_events  # for testing
 
         history = model.evaluate_generator(
-            generate_batches_from_hdf5_file(f, batchsize, n_bins, class_type, str_ident, swap_col=swap_4d_channels, f_size=f_size, zero_center_image=xs_mean),
+            generate_batches_from_hdf5_file(f, batchsize, n_bins, class_type, str_ident, swap_col=swap_4d_channels, f_size=f_size, zero_center_image=xs_mean, inputImages=args.inputImages),
             steps=int(f_size / batchsize), max_queue_size=10)
         print 'Test sample results: ' + str(history) + ' (' + str(model.metrics_names) + ')'
 

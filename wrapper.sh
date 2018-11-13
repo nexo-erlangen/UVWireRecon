@@ -9,7 +9,7 @@ TIMESTAMP=$(timestamp)
 TIMESTAMPSEC=$(timestampSEC)
 
 #check ob auf GPU mit Hilfe von $HOST ?
-PWD=/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/
+PWD=/home/vault/capm/mppi053h/Master/UV-wire/
 DATA="${PWD}Data/"
 FOLDERRUNS="${PWD}TrainingRuns/"
 CODEFOLDER=$HPC/UVWireRecon/

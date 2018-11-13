@@ -122,7 +122,10 @@ def create_shared_dcnn_network():
     return Model(inputs=[visible_U_1, visible_V_1, visible_U_2, visible_V_2], outputs=[output_xyze])    #outputs=[output_xyze, output_TPC])
 
 
-def create_shared_DEEPcnn_network():
+
+
+
+def create_shared_DEEPcnn_network(var_targets, inputImages, multiplicity):
     from keras.utils import plot_model
     from keras.models import Model
     from keras.layers import Input
@@ -134,15 +137,16 @@ def create_shared_DEEPcnn_network():
     from keras import regularizers
 
     regu = regularizers.l2(0.01)
+    var_targets = var_targets
 
     # Input layers
-    visible_U_1 = Input(shape=(2048, 38, 1), name='U_Wire_1')
-    visible_U_2 = Input(shape=(2048, 38, 1), name='U_Wire_2')
+    visible_U_1 = Input(shape=(700, 38, 1), name='U_Wire_1')
+    visible_U_2 = Input(shape=(700, 38, 1), name='U_Wire_2')
 
-    visible_V_1 = Input(shape=(2048, 38, 1), name='V_Wire_1')
-    visible_V_2 = Input(shape=(2048, 38, 1), name='V_Wire_2')
+    visible_V_1 = Input(shape=(700, 38, 1), name='V_Wire_1')
+    visible_V_2 = Input(shape=(700, 38, 1), name='V_Wire_2')
 
-    # Define U-wire shared layers
+    # Define U-wire shared layers   # 16, 32, 64, 100, 200, 300, 400, 500
     shared_conv_1_U = Conv2D(16, kernel_size=5, activation='relu', name='Shared_1_U', kernel_regularizer=regu)
     shared_conv_2_U = Conv2D(32, kernel_size=(5, 3), activation='relu', name='Shared_2_U', kernel_regularizer=regu)
     shared_pooling_1_U = MaxPooling2D(pool_size=(5, 1), name='Shared_1p_U')
@@ -171,112 +175,192 @@ def create_shared_DEEPcnn_network():
     shared_pooling_4_V = MaxPooling2D(pool_size=(3, 1), name='Shared_4p_V')
 
     # U-wire feature layers
-    encoded_1_U_1 = shared_conv_1_U(visible_U_1)
-    encoded_1_U_2 = shared_conv_1_U(visible_U_2)
+    if inputImages == 'U' or 'UV':
+        encoded_1_U_1 = shared_conv_1_U(visible_U_1)
+        encoded_1_U_2 = shared_conv_1_U(visible_U_2)
 
-    encoded_2_U_1 = shared_conv_2_U(encoded_1_U_1)
-    encoded_2_U_2 = shared_conv_2_U(encoded_1_U_2)
+        encoded_2_U_1 = shared_conv_2_U(encoded_1_U_1)
+        encoded_2_U_2 = shared_conv_2_U(encoded_1_U_2)
 
-    pooled_1_U_1 = shared_pooling_1_U(encoded_2_U_1)
-    pooled_1_U_2 = shared_pooling_1_U(encoded_2_U_2)
+        pooled_1_U_1 = shared_pooling_1_U(encoded_2_U_1)
+        pooled_1_U_2 = shared_pooling_1_U(encoded_2_U_2)
 
-    encoded_3_U_1 = shared_conv_3_U(pooled_1_U_1)
-    encoded_3_U_2 = shared_conv_3_U(pooled_1_U_2)
+        # encoded_3_U_1 = shared_conv_3_U(encoded_2_U_1)
+        # encoded_3_U_2 = shared_conv_3_U(encoded_2_U_2)
 
-    encoded_4_U_1 = shared_conv_4_U(encoded_3_U_1)
-    encoded_4_U_2 = shared_conv_4_U(encoded_3_U_2)
+        encoded_3_U_1 = shared_conv_3_U(pooled_1_U_1)
+        encoded_3_U_2 = shared_conv_3_U(pooled_1_U_2)
 
-    pooled_2_U_1 = shared_pooling_2_U(encoded_4_U_1)
-    pooled_2_U_2 = shared_pooling_2_U(encoded_4_U_2)
 
-    encoded_5_U_1 = shared_conv_5_U(pooled_2_U_1)
-    encoded_5_U_2 = shared_conv_5_U(pooled_2_U_2)
+        encoded_4_U_1 = shared_conv_4_U(encoded_3_U_1)
+        encoded_4_U_2 = shared_conv_4_U(encoded_3_U_2)
 
-    encoded_6_U_1 = shared_conv_6_U(encoded_5_U_1)
-    encoded_6_U_2 = shared_conv_6_U(encoded_5_U_2)
+        pooled_2_U_1 = shared_pooling_2_U(encoded_4_U_1)
+        pooled_2_U_2 = shared_pooling_2_U(encoded_4_U_2)
 
-    pooled_3_U_1 = shared_pooling_3_U(encoded_6_U_1)
-    pooled_3_U_2 = shared_pooling_3_U(encoded_6_U_2)
+        encoded_5_U_1 = shared_conv_5_U(pooled_2_U_1)
+        encoded_5_U_2 = shared_conv_5_U(pooled_2_U_2)
 
-    encoded_7_U_1 = shared_conv_7_U(pooled_3_U_1)
-    encoded_7_U_2 = shared_conv_7_U(pooled_3_U_2)
+        encoded_6_U_1 = shared_conv_6_U(encoded_5_U_1)
+        encoded_6_U_2 = shared_conv_6_U(encoded_5_U_2)
 
-    encoded_8_U_1 = shared_conv_8_U(encoded_7_U_1)
-    encoded_8_U_2 = shared_conv_8_U(encoded_7_U_2)
+        pooled_3_U_1 = shared_pooling_3_U(encoded_6_U_1)
+        pooled_3_U_2 = shared_pooling_3_U(encoded_6_U_2)
 
-    pooled_4_U_1 = shared_pooling_4_U(encoded_8_U_1)
-    pooled_4_U_2 = shared_pooling_4_U(encoded_8_U_2)
+        encoded_7_U_1 = shared_conv_7_U(pooled_3_U_1)
+        encoded_7_U_2 = shared_conv_7_U(pooled_3_U_2)
+
+        encoded_8_U_1 = shared_conv_8_U(encoded_7_U_1)
+        encoded_8_U_2 = shared_conv_8_U(encoded_7_U_2)
+
+        pooled_4_U_1 = shared_pooling_4_U(encoded_8_U_1)
+        pooled_4_U_2 = shared_pooling_4_U(encoded_8_U_2)
 
 
     # V-wire feature layers
-    encoded_1_V_1 = shared_conv_1_V(visible_V_1)
-    encoded_1_V_2 = shared_conv_1_V(visible_V_2)
+    if inputImages == 'V' or 'UV':
+        encoded_1_V_1 = shared_conv_1_V(visible_V_1)
+        encoded_1_V_2 = shared_conv_1_V(visible_V_2)
 
-    encoded_2_V_1 = shared_conv_2_V(encoded_1_V_1)
-    encoded_2_V_2 = shared_conv_2_V(encoded_1_V_2)
+        encoded_2_V_1 = shared_conv_2_V(encoded_1_V_1)
+        encoded_2_V_2 = shared_conv_2_V(encoded_1_V_2)
 
-    pooled_1_V_1 = shared_pooling_1_V(encoded_2_V_1)
-    pooled_1_V_2 = shared_pooling_1_V(encoded_2_V_2)
+        pooled_1_V_1 = shared_pooling_1_V(encoded_2_V_1)
+        pooled_1_V_2 = shared_pooling_1_V(encoded_2_V_2)
 
-    encoded_3_V_1 = shared_conv_3_V(pooled_1_V_1)
-    encoded_3_V_2 = shared_conv_3_V(pooled_1_V_2)
+        # encoded_3_V_1 = shared_conv_3_V(encoded_2_V_1)
+        # encoded_3_V_2 = shared_conv_3_V(encoded_2_V_2)
 
-    encoded_4_V_1 = shared_conv_4_V(encoded_3_V_1)
-    encoded_4_V_2 = shared_conv_4_V(encoded_3_V_2)
+        encoded_3_V_1 = shared_conv_3_V(pooled_1_V_1)
+        encoded_3_V_2 = shared_conv_3_V(pooled_1_V_2)
 
-    pooled_2_V_1 = shared_pooling_2_V(encoded_4_V_1)
-    pooled_2_V_2 = shared_pooling_2_V(encoded_4_V_2)
+        encoded_4_V_1 = shared_conv_4_V(encoded_3_V_1)
+        encoded_4_V_2 = shared_conv_4_V(encoded_3_V_2)
 
-    encoded_5_V_1 = shared_conv_5_V(pooled_2_V_1)
-    encoded_5_V_2 = shared_conv_5_V(pooled_2_V_2)
+        pooled_2_V_1 = shared_pooling_2_V(encoded_4_V_1)
+        pooled_2_V_2 = shared_pooling_2_V(encoded_4_V_2)
 
-    encoded_6_V_1 = shared_conv_6_V(encoded_5_V_1)
-    encoded_6_V_2 = shared_conv_6_V(encoded_5_V_2)
+        encoded_5_V_1 = shared_conv_5_V(pooled_2_V_1)
+        encoded_5_V_2 = shared_conv_5_V(pooled_2_V_2)
 
-    pooled_3_V_1 = shared_pooling_3_V(encoded_6_V_1)
-    pooled_3_V_2 = shared_pooling_3_V(encoded_6_V_2)
+        encoded_6_V_1 = shared_conv_6_V(encoded_5_V_1)
+        encoded_6_V_2 = shared_conv_6_V(encoded_5_V_2)
 
-    encoded_7_V_1 = shared_conv_7_V(pooled_3_V_1)
-    encoded_7_V_2 = shared_conv_7_V(pooled_3_V_2)
+        pooled_3_V_1 = shared_pooling_3_V(encoded_6_V_1)
+        pooled_3_V_2 = shared_pooling_3_V(encoded_6_V_2)
 
-    encoded_8_V_1 = shared_conv_8_V(encoded_7_V_1)
-    encoded_8_V_2 = shared_conv_8_V(encoded_7_V_2)
+        encoded_7_V_1 = shared_conv_7_V(pooled_3_V_1)
+        encoded_7_V_2 = shared_conv_7_V(pooled_3_V_2)
 
-    pooled_4_V_1 = shared_pooling_4_V(encoded_8_V_1)
-    pooled_4_V_2 = shared_pooling_4_V(encoded_8_V_2)
+        encoded_8_V_1 = shared_conv_8_V(encoded_7_V_1)
+        encoded_8_V_2 = shared_conv_8_V(encoded_7_V_2)
+
+        pooled_4_V_1 = shared_pooling_4_V(encoded_8_V_1)
+        pooled_4_V_2 = shared_pooling_4_V(encoded_8_V_2)
 
     # Merge U- and V-wire of TPC 1 and TPC 2
-    merge_TPC_1 = concatenate([pooled_4_U_1, pooled_4_V_1], name='TPC_1')
-    merge_TPC_2 = concatenate([pooled_4_U_2, pooled_4_V_2], name='TPC_2')
+    if inputImages == 'UV':
 
-    # Flatten
-    flat_TPC_1 = Flatten(name='Flat_TPC_1')(merge_TPC_1)
-    flat_TPC_2 = Flatten(name='Flat_TPC_2')(merge_TPC_2)
+        # merge_TPC_1 = concatenate([encoded_8_U_1, encoded_8_V_1], name='TPC_1')
+        # merge_TPC_2 = concatenate([encoded_8_U_2, encoded_8_V_2], name='TPC_2')
 
-    # Define shared Dense Layers
-    shared_dense_1 = Dense(32, activation='relu', name='Shared_1_TPC_1_and_2', kernel_regularizer=regu)
-    shared_dense_2 = Dense(16, activation='relu', name='Shared_2_TPC_1_and_2', kernel_regularizer=regu)
+        merge_TPC_1 = concatenate([pooled_4_U_1, pooled_4_V_1], name='TPC_1')
+        merge_TPC_2 = concatenate([pooled_4_U_2, pooled_4_V_2], name='TPC_2')
 
-    # Dense Layers
-    dense_1_TPC_1 = shared_dense_1(flat_TPC_1)
-    dense_1_TPC_2 = shared_dense_1(flat_TPC_2)
+        # Flatten
+        flat_TPC_1 = Flatten(name='Flat_TPC_1')(merge_TPC_1)
+        flat_TPC_2 = Flatten(name='Flat_TPC_2')(merge_TPC_2)
 
-    dense_2_TPC_1 = shared_dense_2(dense_1_TPC_1)
-    dense_2_TPC_2 = shared_dense_2(dense_1_TPC_2)
+        if multiplicity == 'SS':
 
-    # Merge Dense Layers
-    merge_TPC_1_2 = concatenate([dense_2_TPC_1, dense_2_TPC_2], name='TPC_1_and_2')
+            # Define shared Dense Layers
+            shared_dense_1 = Dense(32, activation='relu', name='Shared_1_TPC_1_and_2', kernel_regularizer=regu)
+            shared_dense_2 = Dense(16, activation='relu', name='Shared_2_TPC_1_and_2', kernel_regularizer=regu)
 
-    # Flatten
-    # flat_TPC_1_and_2 = Flatten(name='TPCs')(merge_TPC_1_2)
+            # Dense Layers
+            dense_1_TPC_1 = shared_dense_1(flat_TPC_1)
+            dense_1_TPC_2 = shared_dense_1(flat_TPC_2)
+
+            dense_2_TPC_1 = shared_dense_2(dense_1_TPC_1)
+            dense_2_TPC_2 = shared_dense_2(dense_1_TPC_2)
+
+            # Merge Dense Layers
+            merge_TPC_1_2 = concatenate([dense_2_TPC_1, dense_2_TPC_2], name='TPC_1_and_2')
+
+        if multiplicity == 'SS+MS':
+            # Define shared Dense Layers
+            shared_dense_1 = Dense(50, activation='relu', name='Shared_1_TPC_1_and_2', kernel_regularizer=regu)
+            shared_dense_2 = Dense(30, activation='relu', name='Shared_2_TPC_1_and_2', kernel_regularizer=regu)
+
+            # Dense Layers
+            dense_1_TPC_1 = shared_dense_1(flat_TPC_1)
+            dense_1_TPC_2 = shared_dense_1(flat_TPC_2)
+
+            dense_2_TPC_1 = shared_dense_2(dense_1_TPC_1)
+            dense_2_TPC_2 = shared_dense_2(dense_1_TPC_2)
+
+            # Merge Dense Layers
+            merge_TPC_1_2 = concatenate([dense_2_TPC_1, dense_2_TPC_2], name='TPC_1_and_2')
+
+    elif inputImages == 'U':
+        # Flatten
+        flat_TPC_1 = Flatten(name='Flat_TPC_1')(pooled_4_U_1)
+        flat_TPC_2 = Flatten(name='Flat_TPC_2')(pooled_4_U_2)
+
+        # Define shared Dense Layers
+        shared_dense_1 = Dense(32, activation='relu', name='Shared_1_TPC_1_and_2', kernel_regularizer=regu)
+        shared_dense_2 = Dense(16, activation='relu', name='Shared_2_TPC_1_and_2', kernel_regularizer=regu)
+
+        # Dense Layers
+        dense_1_TPC_1 = shared_dense_1(flat_TPC_1)
+        dense_1_TPC_2 = shared_dense_1(flat_TPC_2)
+
+        dense_2_TPC_1 = shared_dense_2(dense_1_TPC_1)
+        dense_2_TPC_2 = shared_dense_2(dense_1_TPC_2)
+
+        # Merge Dense Layers
+        merge_TPC_1_2 = concatenate([dense_2_TPC_1, dense_2_TPC_2], name='TPC_1_and_2')
+
+    elif inputImages == 'V':
+        # Flatten
+        flat_TPC_1 = Flatten(name='Flat_TPC_1')(pooled_4_V_1)
+        flat_TPC_2 = Flatten(name='Flat_TPC_2')(pooled_4_V_2)
+
+        # Define shared Dense Layers
+        shared_dense_1 = Dense(32, activation='relu', name='Shared_1_TPC_1_and_2', kernel_regularizer=regu)
+        shared_dense_2 = Dense(16, activation='relu', name='Shared_2_TPC_1_and_2', kernel_regularizer=regu)
+
+        # Dense Layers
+        dense_1_TPC_1 = shared_dense_1(flat_TPC_1)
+        dense_1_TPC_2 = shared_dense_1(flat_TPC_2)
+
+        dense_2_TPC_1 = shared_dense_2(dense_1_TPC_1)
+        dense_2_TPC_2 = shared_dense_2(dense_1_TPC_2)
+
+        # Merge Dense Layers
+        merge_TPC_1_2 = concatenate([dense_2_TPC_1, dense_2_TPC_2], name='TPC_1_and_2')
 
     # Output
-    # output_xyze = Dense(4, name='Output_xyze')(merge_TPC_1_2)
-    # output_xyze = Dense(2, name='Output_xyze')(merge_TPC_1_2)
-    output_xyze = Dense(4, name='Output_xyze')(merge_TPC_1_2)
-    #output_TPC = Dense(1, activation='sigmoid', name='Output_TPC')(merge_TPC_1_2)
+    if multiplicity == 'SS':
+        if var_targets == 'energy' or var_targets == 'time' or var_targets == 'U' or var_targets == 'V':
+            output_exyz = Dense(1, name='Output_e')(merge_TPC_1_2)
+        elif var_targets == 'energy_and_UV_position':
+            print '$$$$$$$$$$'
+            output_exyz = Dense(4, name='Output_xyze')(merge_TPC_1_2)
+        elif var_targets == 'position':
+            output_exyz = Dense(3, name='Output_xyze')(merge_TPC_1_2)
 
-    return Model(inputs=[visible_U_1, visible_V_1, visible_U_2, visible_V_2], outputs=[output_xyze])    #outputs=[output_xyze, output_TPC])
+    elif multiplicity == 'SS+MS':
+        if var_targets == 'energy_and_UV_position':
+            output_exyz = Dense(20, name='Output_xyze')(merge_TPC_1_2)
+
+    if inputImages == 'UV':
+        return Model(inputs=[visible_U_1, visible_V_1, visible_U_2, visible_V_2], outputs=[output_exyz])        #outputs=[output_e, output_x, output_y, output_z])
+    elif inputImages == 'U':
+        return Model(inputs=[visible_U_1, visible_U_2], outputs=[output_exyz])  # outputs=[output_xyze, output_TPC])
+    elif inputImages == 'V':
+        return Model(inputs=[visible_V_1, visible_V_2], outputs=[output_exyz])
+
 
 def create_inception_network():
     from keras.utils import plot_model
@@ -745,4 +829,6 @@ def create_inception_network():
     output_xyze = Dense(4, name='Output_xyze')(merge_TPC_1_2)
 
     return Model(inputs=[visible_U_1, visible_V_1, visible_U_2, visible_V_2], outputs=[output_xyze])
+
+
 

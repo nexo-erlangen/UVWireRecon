@@ -36,11 +36,12 @@ def parseInput():
                                      formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('-o', '--out', dest='folderOUT', type=str, default='Dummy', help='folderOUT Path')
-    parser.add_argument('-i', '--in', dest='folderIN', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/', help='folderIN Path')
-    parser.add_argument('-r', '--runs', dest='folderRUNS', type=str, default='/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/TrainingRuns/', help='folderRUNS Path')
+    parser.add_argument('-i', '--in', dest='folderIN', type=str, default='/home/vault/capm/mppi053h/Master/UV-wire/Data/', help='folderIN Path')
+    parser.add_argument('-r', '--runs', dest='folderRUNS', type=str, default='/home/vault/capm/mppi053h/Master/UV-wire/TrainingRuns/', help='folderRUNS Path')
     parser.add_argument('-m', '--model', dest='folderMODEL', type=str, default='Dummy', help='folderMODEL Path')
+    parser.add_argument('--inputs', dest='inputImages', type=str, default='UV', choices=['U', 'V', 'UV'], help='Input images for Neural network')
     parser.add_argument('-t', '--targets', type=str, dest='var_targets', default='energy_and_UV_position', help='Targets to train the network against')
-    parser.add_argument('-a', '--arch', type=str, dest='cnn_arch', default='DCNN', choices=['DCNN', 'ResNet', 'Inception'], help='Choose network architecture')
+    parser.add_argument('-a', '--arch', type=str, dest='cnn_arch', default='DCNN', choices=['DCNN', 'ResNet', 'Inception', 'Autoencoder'], help='Choose network architecture')
     parser.add_argument('-g', '--gpu', type=int, dest='num_gpu', default=1, choices=[1, 2, 3, 4], help='Number of GPUs')
     parser.add_argument('-e', '--epoch', type=int, dest='num_epoch', default=1, help='nb Epochs')
     parser.add_argument('-b', '--batch', type=int, dest='batchsize', default=16, help='Batch Size')
@@ -53,6 +54,8 @@ def parseInput():
     parser.add_argument('--resume', dest='resume', action='store_true', help='Resume Training')
     parser.add_argument('--test', dest='test', action='store_true', help='Only reduced data')
     parser.add_argument('--new', dest='new', action='store_true', help='Process new validation events')
+    parser.add_argument('--learningrate', dest='learningRate', default=0.001, help='Learning Rate of the network')
+    parser.add_argument('--note', dest='note', type=str, default='', nargs="*", help='note to be added to info.txt')
     args, unknown = parser.parse_known_args()
 
     if len(sys.argv) == 1:
@@ -103,6 +106,17 @@ def parseInput():
     print 'Number of Epoch:\t', args.num_epoch
     print 'BatchSize:\t\t', args.batchsize, '\n'
 
+    # f_out = file(args.folderOUT + 'info.txt', 'w')
+    # infodatei.write('\n')
+    # infodatei.write(str(args))
+    # infodatei.write('\n')
+    # infodatei.close()
+
+    with open(args.folderOUT + 'info.txt', 'w') as f_out:
+        args_dict = vars(args)
+        for key in args_dict.keys():
+            f_out.write(str(key) + '\t' + str(args_dict[key]) + '\n')
+
     return args
 
 def splitFiles(args, mode, frac_train, frac_val):
@@ -118,16 +132,16 @@ def splitFiles(args, mode, frac_train, frac_val):
             splitted_files= {'train': {}, 'val': {}, 'test': {}}
             print "\tSource\t\tTotal\tTrain\tValid\tTest"
             for ending in args.endings:
-                if (frac_train[ending] + frac_val[ending]) > 1.0 : raise ValueError('check file fractions!')
+                if (frac_train[ending] + frac_val[ending]) > 1.0: raise ValueError('check file fractions!')
                 files[ending] = [os.path.join(args.folderIN[ending], f) for f in os.listdir(args.folderIN[ending]) if
                                  os.path.isfile(os.path.join(args.folderIN[ending], f))]
                 random.shuffle(files[ending])
                 num_train = int(round(len(files[ending]) * frac_train[ending]))
                 num_val = int(round(len(files[ending]) * frac_val[ending]))
                 if not args.test:
-                    splitted_files['train'][ending] = files[ending][0 : num_train]
-                    splitted_files['val'][ending]   = files[ending][num_train : num_train + num_val]
-                    splitted_files['test'][ending]  = files[ending][num_train + num_val : ]
+                    splitted_files['train'][ending] = files[ending][0: num_train]
+                    splitted_files['val'][ending]   = files[ending][num_train: num_train + num_val]
+                    splitted_files['test'][ending]  = files[ending][num_train + num_val:]
                 else:
                     splitted_files['val'][ending]   = files[ending][0:1]
                     splitted_files['test'][ending]  = files[ending][1:2]
@@ -137,6 +151,7 @@ def splitFiles(args, mode, frac_train, frac_val):
             return splitted_files
     elif mode == 'mc':
         files_training = pickle.load(open(args.folderMODEL + "splitted_files.p", "rb"))
+        print args.endings
         for ending in args.endings:
             if ending in files_training['val'].keys() or ending in files_training['test'].keys():
                 files[ending] = files_training['val'][ending] + files_training['test'][ending]
@@ -144,6 +159,7 @@ def splitFiles(args, mode, frac_train, frac_val):
                 files[ending] = [os.path.join(args.folderIN[ending], f) for f in os.listdir(args.folderIN[ending]) if
                                  os.path.isfile(os.path.join(args.folderIN[ending], f))]
         print 'Input  File:\t\t', (args.folderOUT + "splitted_files.p")
+        # print files
         return files
     elif mode == 'data':
         for ending in args.endings:

@@ -63,7 +63,7 @@ class BatchLevelPerformanceLogger(ks.callbacks.Callback):
         self.var_targets = var_targets
         self.model = model
         self.batchsize = batchsize
-        self.gen = generate_batches_from_files(self.validationfiles, 1, var_targets)
+        self.gen = generate_batches_from_files(self.validationfiles, 1, self.args.inputImages, var_targets)
 
     def on_batch_end(self, batch, logs={}):
         self.seen += 1
@@ -72,6 +72,7 @@ class BatchLevelPerformanceLogger(ks.callbacks.Callback):
 
         if self.seen % self.display2 == 0:
             valLoss, valMae = tuple(self.model.evaluate_generator(self.gen, steps=1))
+            # valLoss, valMae = tuple(self.model.evaluate_generator(generate_batches_from_files(self.validationfiles, 1, self.var_targets, inputImages=self.args.inputImages), steps=1))
             self.averageValLoss += valLoss
             self.averageValMAE += valMae
 
@@ -112,7 +113,7 @@ class EpochLevelPerformanceLogger(ks.callbacks.Callback):
         self.events_val = min([getNumEvents(files), 2000])
         self.events_per_batch = 50
         self.val_iterations = round_down(self.events_val, self.events_per_batch) / self.events_per_batch
-        self.val_gen = generate_batches_from_files(files, batchsize=self.events_per_batch, class_type=var_targets, yield_mc_info=1)
+        self.val_gen = generate_batches_from_files(files, batchsize=self.events_per_batch, class_type=var_targets, yield_mc_info=1, inputImages=args.inputImages, multiplicity=args.multiplicity)
 
     def on_train_begin(self, logs={}):
         self.losses = []
@@ -123,11 +124,14 @@ class EpochLevelPerformanceLogger(ks.callbacks.Callback):
             pickle.dump({}, open(self.args.folderOUT + "save.p", "wb"))
         return
 
+
     def on_train_end(self, logs={}):
         return
 
+
     def on_epoch_begin(self, epoch, logs={}):
         return
+
 
     def on_epoch_end(self, epoch, logs={}):
         Y_PRED, Y_TRUE, EVENT_INFO = [], [], []
@@ -141,16 +145,18 @@ class EpochLevelPerformanceLogger(ks.callbacks.Callback):
         # print EVENT_INFO
         self.dict_out = pickle.load(open(self.args.folderOUT + "save.p", "rb"))
         self.dict_out[epoch] = {'Y_PRED': np.asarray(Y_PRED), 'Y_TRUE': np.asarray(Y_TRUE), 'EVENT_INFO': EVENT_INFO,
-                                # 'CCPosU': np.asarray(EVENT_INFO['CCPosU'][0]), 'CCPosV': np.asarray(EVENT_INFO['CCPosV'][1]),
-                                     'loss': logs['loss'], 'mean_absolute_error': logs['mean_absolute_error'],
-                                     'val_loss': logs['val_loss'], 'val_mean_absolute_error': logs['val_mean_absolute_error']}
+            # 'CCPosU': np.asarray(EVENT_INFO['CCPosU'][0]), 'CCPosV': np.asarray(EVENT_INFO['CCPosV'][1]),
+            'loss': logs['loss'], 'mean_absolute_error': logs['mean_absolute_error'],
+            'val_loss': logs['val_loss'], 'val_mean_absolute_error': logs['val_mean_absolute_error']}
         pickle.dump(self.dict_out, open(self.args.folderOUT + "save.p", "wb"))
-        on_epoch_end_plots(folderOUT=self.args.folderOUT, epoch=epoch, data=self.dict_out[epoch])
 
+        if epoch != 0:
+            plot_traininghistory(self)
+
+        on_epoch_end_plots(self, folderOUT=self.args.folderOUT, epoch=epoch, data=self.dict_out[epoch], var_targets=self. args.var_targets)
 
         # plot_train_and_test_statistics(modelname)
         # plot_weights_and_activations(test_files[0][0], n_bins, class_type, xs_mean, swap_4d_channels, modelname,
         #                              epoch[0], file_no, str_ident)
-        # plot_traininghistory(args)
 
         return

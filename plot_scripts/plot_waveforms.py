@@ -12,8 +12,8 @@ path.append('/home/hpc/capm/sn0515/UVWireRecon')
 from utilities import generator as gen
 
 def main():
-    folderIN = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Data/UniformGamma_ExpWFs_MC_SS/'
-    folderOUT = '/home/vault/capm/sn0515/PhD/DeepLearning/UV-wire/Waveforms/'
+    folderIN = '/home/vault/capm/mppi053h/Master/UV-wire/Data/GammaExp_WFs_Uni_MC_SS/'
+    folderOUT = '/home/vault/capm/mppi053h/Master/UV-wire/Waveforms/'
     files = [os.path.join(folderIN, f) for f in os.listdir(folderIN) if os.path.isfile(os.path.join(folderIN, f))]
     number = 100
     generator = gen.generate_batches_from_files(files, 1, class_type='energy_and_position', f_size=None, yield_mc_info=False)
