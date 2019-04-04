@@ -18,8 +18,8 @@ def main():
     # folderIN = os.path.join(sys.argv[1], '')
     # folderOUT = os.path.join(sys.argv[2], '')
 
-    folderIN = '/home/vault/capm/mppi053h/Master/UV-wire/Data/Th228_WFs_S5_MC_SS/'
-    folderOUT = '/home/vault/capm/mppi053h/Master/UV-wire/Data/Th228_WFs_S5_MC_SS_cropped/'
+    folderIN = '/home/vault/capm/mppi053h/Master/UV-wire/Data/Th228_WFs_S5_Data_SS_full_length/'
+    folderOUT = '/home/vault/capm/mppi053h/Master/UV-wire/Data/Th228_WFs_S5_Data_SS/'
 
     print
     print 'Input Folder:\t', folderIN
@@ -32,8 +32,11 @@ def main():
     print
 
     offset = 0
-    start = 900
-    length = 700
+    # start = 900
+    # length = 700
+
+    start = 1000
+    length = 400
 
     for file in files:
         print 'cropping file:\t\t', file

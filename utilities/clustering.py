@@ -14,7 +14,7 @@ from sklearn.cluster import DBSCAN
 from sklearn import metrics
 from sklearn.datasets.samples_generator import make_blobs
 from sklearn.preprocessing import StandardScaler
-
+import os
 
 
 def main():
@@ -24,20 +24,121 @@ def main():
     # kommen duerfen.
 
 #-----------
-    filename = '/home/vault/capm/mppi053h/Master/UV-wire/Data/ClusteringTestDataMS/ED_Source_UniformGamma_Exp_0.hdf5'
+
     # filename = '/home/vault/capm/mppi053h/Master/UV-wire/Data/ClusteringTestbb0nE/ED_Source_bb0nE_0.hdf5'
+    '/home/vault/capm/mppi053h/Master/UV-wire/Data/GammaExp_WFs_Uni_MC_SS+MS/'
+    histo = []
+    for filename in os.listdir('/home/vault/capm/mppi053h/Master/UV-wire/Data/GammaExp_WFs_Uni_MC_SS+MS/'):
+        y_dict = h5py.File('/home/vault/capm/mppi053h/Master/UV-wire/Data/GammaExp_WFs_Uni_MC_SS+MS/' + str(filename), "r")
+        print filename
+        # print y_dict.keys()
+
+        histoDBSCAN = []
+        histoCC = []
+
+        number_timesteps = 3
+        eventnumber = 0
+
+        train_y = np.zeros((8000, number_timesteps, 4), dtype='float32')
+
+        for eventnumber in xrange(8000):
+            if (eventnumber+1) %1000 == 0: print '>>'
+            numPCDs = int(y_dict['MCNumberPCDs'][eventnumber])
+
+            # TODO: in x, y, z clustern; dann in u, v, z umrechnen; PCDs mit Depositchannel < 0 NACH clustern
+            # TODO: wegwerfen um ihr Energie nicht fuer Berechnung der Cluster Energie zu verwenden
+            x, y, z, energy, depositChannel = y_dict['MCPosX'][eventnumber][0:numPCDs], y_dict['MCPosY'][eventnumber][
+                                                                                        0:numPCDs], y_dict['MCPosZ'][
+                                                                                                        eventnumber][
+                                                                                                    0:numPCDs], \
+                                              y_dict['MCEnergy'][eventnumber][0:numPCDs], y_dict['MCDepositChannel'][
+                                                                                              eventnumber][0:numPCDs]
+            X = []
+
+            for i in range(len(x)):
+                X.append([x[i], y[i], z[i]])
+
+            cluster_distance = 5  # in mm
+            clustering = DBSCAN(eps=cluster_distance, min_samples=1).fit(X)
+            label = clustering.labels_
+
+            x_mean, y_mean, z_mean, energy_sum = [], [], [], []
+
+            energy_sum2 = []
+
+            histo.append(max(label) + 1)
+
+            for j in range(max(label) + 1):
+
+                mask = np.logical_and(depositChannel >= 0.0, label == j)
+
+                x_temp = x[mask]
+                y_temp = y[mask]
+                z_temp = z[mask]
+                energy_temp = energy[mask]
+
+                # if j==5:
+                #     counter_5+=1
+
+                if len(energy_temp) != 0:
+                    x_mean.append(np.average(x_temp, weights=energy_temp))
+                    y_mean.append(np.average(y_temp, weights=energy_temp))
+                    z_mean.append(np.average(z_temp, weights=energy_temp))
+                    energy_sum.append(np.sum(energy_temp))
+                    energy_sum2.append(np.sum(energy_temp))
+                    test2 = np.sum(energy_temp)
+                    # print '>>>>>', len(energy_temp)
+
+            # print test2
+
+            while len(x_mean) < number_timesteps:
+                x_mean.append(0.0)
+                y_mean.append(0.0)
+                z_mean.append(0.0)
+                energy_sum.append(0.0)
+
+            # TODO erst nach sortierung beschneiden sonst wird evtl groesster cluster weggeworfen
+            if len(x_mean) > number_timesteps:
+                x_mean = x_mean[:5]
+                y_mean = y_mean[:5]
+                z_mean = z_mean[:5]
+                energy_sum = energy_sum[:5]
+
+            x_mean = np.array(x_mean)
+            y_mean = np.array(y_mean)
+            z_mean = np.array(z_mean)
+            energy_sum = np.array(energy_sum)
+
+            # x_mean, y_mean to u, v
+            if [z_mean > 0.0]:
+                u_mean = -0.5 * x_mean + 0.5 * np.sqrt(3.0) * y_mean
+                v_mean = 0.5 * x_mean + 0.5 * np.sqrt(3.0) * y_mean
+            else:
+                u_mean = 0.5 * x_mean + 0.5 * np.sqrt(3.0) * y_mean
+                v_mean = -0.5 * x_mean + 0.5 * np.sqrt(3.0) * y_mean
+
+            # u_mean = normalize(u_mean, 'U')
+            # v_mean = normalize(v_mean, 'V')
+            # z_mean = normalize(z_mean, 'Z')
+            # energy_sum = normalize(energy_sum, 'energy')
+            # print energy_sum
+
+            dtype = [('energy', float), ('U', float), ('V', float), ('Z', float)]
+            values = [(energy_sum[i], u_mean[i], v_mean[i], z_mean[i]) for i in range(number_timesteps)]
+
+            target = np.array(values, dtype=dtype)
+            target = np.sort(target, order='energy')
 
 
-    y_dict = h5py.File(str(filename), "r")
+            for timestep in range(number_timesteps):
+                train_y[eventnumber][timestep] = [
+                    normalize(target[number_timesteps - 1 - timestep]['energy'], 'energy'),
+                    normalize(target[number_timesteps - 1 - timestep]['U'], 'U'),
+                    normalize(target[number_timesteps - 1 - timestep]['V'], 'V'),
+                    normalize(target[number_timesteps - 1 - timestep]['Z'], 'Z')]
 
-    print y_dict.keys()
-
-    histoDBSCAN = []
-    histoCC = []
-
-    eventnumber = 0
-    while eventnumber < 1000:
-
+    print np.histogram(histo)
+'''
         numPCDs = int(y_dict['MCNumberPCDs'][eventnumber])
         numCCs = int(y_dict['CCNumberClusters'][eventnumber])
         # print numPCDs, '\t', data['CCNumberClusters'][eventnumber]
@@ -129,6 +230,8 @@ def main():
     # plt.title('Anzahl DBSCAN Cluster > ' + str(energy_limit) + 'keV')
     # plt.legend()
     # plt.show()
+
+'''
 
 def randomUniform(N):
     # Positionen der jeweiligen Pixel, nun aufgespalten in

@@ -7,6 +7,7 @@ import numpy as np
 from keras.losses import *
 
 
+
 def get_all_loss_functions():
     """
     Functions that returns a dict with all relevant loss functions in this file.
@@ -16,6 +17,99 @@ def get_all_loss_functions():
                       'loss_uncertainty_gaussian_likelihood_dir': loss_uncertainty_gaussian_likelihood_dir,
                       'loss_mean_relative_error_energy': loss_mean_relative_error_energy}
     return custom_objects
+
+
+def loss_MS_classification_and_regression(y_true, y_pred):
+    anzahl = tf.count_nonzero(y_true, axis=(2, 1))
+    anzahl2 = tf.count_nonzero(y_pred, axis=(2, 1))
+    print anzahl.shape
+    print anzahl2.shape
+    print y_true.shape
+    print y_pred.shape
+
+    shape = tf.shape(y_pred)
+
+
+    one_hot = tf.one_hot(anzahl, shape[1]) + tf.one_hot(anzahl-1, shape[1]) + tf.one_hot(anzahl-2, shape[1]) + tf.one_hot(anzahl-3, shape[1]) + tf.one_hot(anzahl-4, shape[1]) + tf.one_hot(anzahl-5, shape[1])
+
+    print one_hot.shape
+
+    one_hot = K.reshape(one_hot, shape)
+    print one_hot.shape
+
+    squared_error = K.square(y_pred - y_true)
+    error = tf.reduce_sum(squared_error * one_hot)
+
+    return error
+
+
+def loss_mean_squared_error_MS_weighted(y_true, y_pred):
+    print '>>>>'
+    print y_true.shape
+    print y_pred.shape
+    # verteilung = tf.Variable(624000. / [434367, 89952, 54579, 27319, 11476, 5737, 427, 103, 33, 7], tf.float32)
+    verteilung = tf.Variable([1.43657322e+00, 6.93703308e+00, 1.14329687e+01, 2.28412460e+01, 5.43743465e+01, 1.08767649e+02, 1.46135831e+03, 6.05825243e+03, 1.89090909e+04, 8.91428571e+04], tf.float32)
+    anzahl = tf.count_nonzero(y_true, axis=(2, 1), keepdims=True)   #, axis=(2, 1))
+
+    # anzahl = tf.count_nonzero(y_true, axis=0)#, keepdims=True)
+    print anzahl.shape
+
+    a, b, c = y_pred.shape
+
+    anzahl = anzahl - 1
+    weight = tf.gather_nd(verteilung, anzahl)
+
+    # weight = K.repeat(weight, b)
+    # weight = K.reshape(weight, (16, b,))
+
+
+    weight = K.repeat(weight, b*c)
+
+    print weight.shape
+
+    weight = K.reshape(weight, (-1, b, c))
+    print weight.shape
+    mse = K.square(y_pred - y_true) * weight
+
+    return K.mean(mse, axis=-1)
+    # return K.expand_dims(mse, 0)
+
+
+def loss_mean_squared_error_MS_weighted_convOnly(y_true, y_pred):
+    print '>>>>'
+    print y_true.shape
+    print y_pred.shape
+    # verteilung = tf.Variable(624000. / [434367, 89952, 54579, 27319, 11476, 5737, 427, 103, 33, 7], tf.float32)
+    verteilung = tf.Variable([1.43657322e+00, 6.93703308e+00, 1.14329687e+01, 2.28412460e+01, 5.43743465e+01, 1.08767649e+02, 1.46135831e+03, 6.05825243e+03, 1.89090909e+04, 8.91428571e+04], tf.float32)
+    anzahl = tf.count_nonzero(y_true, axis=1)   #, axis=(2, 1))
+
+    # anzahl = tf.count_nonzero(y_true, axis=0)#, keepdims=True)
+    print anzahl.shape
+
+    a, b = y_pred.shape
+    print a, b
+
+    anzahl = anzahl - 1
+    weight = tf.gather_nd(verteilung, anzahl)
+
+    weight = K.reshape(weight, (-1, 1))
+
+    print weight.shape
+
+    weight = K.repeat(weight, b)
+    weight = K.reshape(weight, (-1, b))
+
+    # print weight.shape
+    # weight = K.repeat(weight, b)
+
+    print weight.shape
+
+    # weight = K.reshape(weight, (-1, b))
+    # print weight.shape
+    mse = K.square(y_pred - y_true) * weight
+
+    return K.mean(mse, axis=-1)
+
 
 
 def loss_mean_relative_error(y_true, y_pred):

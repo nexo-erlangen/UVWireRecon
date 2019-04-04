@@ -17,10 +17,15 @@ from models.shared_conv import *
 from plot_scripts.plot_traininghistory import *
 
 def main(args):
-    frac_train = {'GammaExpUniMCSS': 0.9}   # 0.9
-    frac_val   = {'GammaExpUniMCSS': 0.1}  # 0.1
+    if args.multiplicity == 'SS+MS':
+        frac_train = {'GammaExpUniMCSS+MS': 0.9}   # 0.9
+        frac_val   = {'GammaExpUniMCSS+MS': 0.1}  # 0.1
+    else:
+        frac_train = {'GammaExpUniMCSS': 0.9}  # 0.9
+        frac_val = {'GammaExpUniMCSS': 0.1}  # 0.1
 
     splitted_files = splitFiles(args, mode=args.mode, frac_train=frac_train, frac_val=frac_val)
+
 
     # plotInputCorrelation(args, splitted_files['train'], add='train')
     # plotInputCorrelation(args, splitted_files['val'], add='val')
@@ -58,6 +63,10 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
         if nn_arch is 'DCNN':
             # model = create_shared_dcnn_network()
             model = create_shared_DEEPcnn_network(var_targets=var_targets, inputImages=args.inputImages, multiplicity=args.multiplicity)
+
+        elif nn_arch == 'ConvLSTM':
+            model = create_shared_ConvLSTM_network(var_targets=var_targets, inputImages=args.inputImages, multiplicity=args.multiplicity)
+
         elif nn_arch is 'ResNet':
             raise ValueError('Currently, this is not implemented')
             # model = create_vgg_like_model(n_bins, batchsize, nb_classes=class_type[0], dropout=0.1,
@@ -68,8 +77,8 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
             # model = create_convolutional_lstm(n_bins, batchsize, nb_classes=class_type[0], dropout=0.1,
             #                                   n_filters=(16, 16, 32, 32, 32, 32, 64, 64))
             # raise ValueError('Currently, this is not implemented')
-        elif nn_arch is 'Conv_LSTM':
-            raise ValueError('Currently, this is not implemented')
+        # elif nn_arch is 'Conv_LSTM':
+        #     raise ValueError('Currently, this is not implemented')
             # model = create_convolutional_lstm(n_bins, batchsize, nb_classes=class_type[0], dropout=0.1,
             #                                   n_filters=(16, 16, 32, 32, 32, 32, 64, 64))
         else:
@@ -90,7 +99,7 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
     if mode == 'train':
         model.summary()
 
-        adam = ks.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08,
+        adam = ks.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-06,  #epsilon=1e-08,
                                   decay=0.0)  # epsilon=1 for deep networks
         # adam = ks.optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=0.1, decay=0.0)
         optimizer = adam  # Choose optimizer, only used if epoch == 0
@@ -100,19 +109,19 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
 
         lr_metric = get_lr_metric(optimizer)
 
+        # alpha = K.variable(0.5)
+        # beta = K.variable(0.5)
+
 
         if epoch[0] == 0:
             model.compile(
+                # loss_weights=[alpha, beta],
+                # loss=loss_MS_classification_and_regression,
                 loss='mean_squared_error',
-                # loss='mean_absolute_error',
-                # loss=loss_mean_squared_relative_error,
-                # loss=loss_energy_and_position_reconstruction,
-                # loss=[loss_mean_relative_error, loss_mean_relative_error, loss_mean_relative_error, loss_mean_relative_error],
-                # loss=loss_mean_relative_error,
-                # loss='mean_absolute_percentage_error',
-                # loss=loss_uncertainty_gaussian_likelihood,
+                # loss=['mean_squared_error', loss_MS_classification_and_regression],
                 optimizer=optimizer,
-                metrics=['mean_absolute_error'])  # , lr_metric])
+                # metrics=['accuracy', 'mean_absolute_error'])
+                metrics=['mean_absolute_error'])
 
         print "\nTraining begins in Epoch:\t", epoch
 
@@ -145,10 +154,10 @@ def executeCNN(args, files, var_targets, nn_arch, batchsize, epoch, mode, n_gpu=
         args.folderOUT += "0physics-data/" + str(args.num_weights) + '-' + args.sources + "-" + args.position + "/"
         os.system("mkdir -p -m 770 %s " % (args.folderOUT))
         data = get_events(args=args, files=files, model=model, fOUT=(
-        args.folderOUT + "events_" + str(args.num_weights) + "_" + args.sources + "-" + args.position + ".p"))
+        args.folderOUT + "events_" + str(args.num_weights) + "_" + args.sources + "-" + args.position + ".p"), mode=mode)
 
         validation_data_plots(folderOUT=args.folderOUT, data=data, epoch=args.num_weights, sources=args.sources,
-                              position=args.position)
+                              position=args.position, var_targets=args.var_targets)
 
         # raise ValueError('Check, if model mc evaluation is implemented yet')
         # After training is finished, investigate model performance
@@ -329,9 +338,9 @@ def fit_model(args, model, files, batchsize, var_targets, epoch, shuffle, n_even
 
     model.save_weights(args.folderOUT + "models/weights_epoch_" + str(epoch[0]+epoch[1]) + ".hdf5")
 
-    print 'Model performance\tloss\t\tmean_abs_err'
-    print '\tTrain:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batches_from_files(files['train'], batchsize, class_type=var_targets, inputImages=args.inputImages, multiplicity=args.multiplicity), steps=50))
-    print '\tValid:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batches_from_files(files['val']  , batchsize, class_type=var_targets, inputImages=args.inputImages, multiplicity=args.multiplicity), steps=50))
+    # print 'Model performance\tloss\t\tmean_abs_err'
+    # print '\tTrain:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batches_from_files(files['train'], batchsize, class_type=var_targets, inputImages=args.inputImages, multiplicity=args.multiplicity), steps=50))
+    # print '\tValid:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batches_from_files(files['val']  , batchsize, class_type=var_targets, inputImages=args.inputImages, multiplicity=args.multiplicity), steps=50))
     return model
 
 
@@ -451,4 +460,4 @@ if __name__ == '__main__':
     finally:
         adjustPermissions(args.folderOUT)
 
-    print '===================================== Program finished =============================='
+    print '>   >  > >> >>> >>>> >>>>> Program finished <<<<< <<<< <<< << < <  <   <    <'

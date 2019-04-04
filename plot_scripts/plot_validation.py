@@ -19,44 +19,119 @@ def on_epoch_end_plots(self, folderOUT, epoch, data, var_targets):
     # print data.keys()
     # plot_traininghistory(self, folderOUT)
 
+
+
     if var_targets == 'energy':
-        print data['Y_TRUE'].shape
+
         # plot_scatter(np.abs(data['Y_TRUE'][:, 0] - data['Y_PRED'][:, 0]), data['Y_PRED'][:, 1], '|True Energy - DNN Energy| [keV]', 'Sigma [keV]', folderOUT + 'prediction_sigma_' + str(epoch) + '.png')
-        plot_scatter(data['Y_TRUE'][:,0], data['Y_PRED'][:, 0], 'True Energy [keV]', 'DNN Energy [keV]', folderOUT+'prediction_energy_' + str(epoch)+'.png')
+        # plot_scatter(data['Y_TRUE'][:,0], data['Y_PRED'][:, 0], 'True Energy [keV]', 'DNN Energy [keV]', folderOUT+'prediction_energy_' + str(epoch)+'.png')
 
-    if var_targets == 'position' or var_targets == 'U':
-        plot_scatter(data['Y_TRUE'][:, 0], data['Y_PRED'][:, 0], 'True U [mm]', 'DNN U [mm]', folderOUT + 'prediction_U_' + str(epoch) + '.png')
-    if var_targets == 'position' or var_targets == 'V':
-        plot_scatter(data['Y_TRUE'][:, 1], data['Y_PRED'][:, 1], 'True V [mm]', 'DNN V [mm]', folderOUT + 'prediction_V_' + str(epoch) + '.png')
+        plot_scatter(denormalize(data['Y_TRUE'][:, 0], 'energy'), denormalize(data['Y_PRED'][:, 0], 'energy'), 'True Energy [keV]', 'DNN Energy [keV]', folderOUT + 'prediction_energy_' + str(epoch) + '.png')
 
-        # plot_scatter(np.sqrt(4 / 3 * (data['Y_TRUE'][:, 0] * data['Y_TRUE'][:, 0] + data['Y_TRUE'][:, 1] * data['Y_TRUE'][:, 1] - data['Y_TRUE'][:, 0] * data['Y_TRUE'][:, 1])),
-        #              np.sqrt(4 / 3 * (data['Y_PRED'][:, 0] * data['Y_PRED'][:, 0] + data['Y_PRED'][:, 1] * data['Y_PRED'][:, 1] - data['Y_PRED'][:, 0] * data['Y_PRED'][:, 1])),
-        #              'True R [mm]', 'DNN R [mm]', folderOUT + 'prediction_R_' + str(epoch) + '.png')
 
-    if var_targets == 'time':
-        plot_scatter(data['Y_TRUE'][:, 0], data['Y_PRED'][:, 0], 'True Time [mu sec]', 'DNN Time [mu sec]', folderOUT + 'prediction_time_' + str(epoch) + '.png')
-        plot_scatter(fromTimeToZ(data['Y_TRUE'][:, 0]), fromTimeToZ(data['Y_PRED'][:, 0]), 'True Z [mm]', 'DNN Z [mm]', folderOUT + 'prediction_Z_' + str(epoch) + '.png')
+
+    if var_targets == 'U':
+        plot_scatter(denormalize(data['Y_TRUE'][:, 0], 'U'), denormalize(data['Y_PRED'][:, 0], 'U'), 'True U [mm]', 'DNN U [mm]', folderOUT + 'prediction_U_' + str(epoch) + '.png')
+    if var_targets == 'V':
+        plot_scatter(denormalize(data['Y_TRUE'][:, 0], 'V'), denormalize(data['Y_PRED'][:, 0], 'V'), 'True V [mm]', 'DNN V [mm]', folderOUT + 'prediction_V_' + str(epoch) + '.png')
+    if var_targets == 'Z':
+        plot_scatter(denormalize(data['Y_TRUE'][:, 0], 'Z'), denormalize(data['Y_PRED'][:, 0], 'Z'), 'True Z [mm]', 'DNN Z [mm]', folderOUT + 'prediction_Z_' + str(epoch) + '.png')
 
     # elif var_targets == 'energy_and_UV_position':
     #     plot_scatter(data['Y_TRUE'][:, 0], data['Y_PRED'][:, 0], 'True Energy [keV]', 'DNN Energy [keV]', folderOUT + 'prediction_energy_' + str(epoch) + '.png')
-    #     plot_scatter(data['Y_TRUE'][:,1], data['Y_PRED'][:,1], 'True U [mm]', 'DNN U [mm]', folderOUT + 'prediction_U_'+str(epoch)+'.png')
-    #     plot_scatter(data['Y_TRUE'][:,2], data['Y_PRED'][:,2], 'True V [mm]', 'DNN V [mm]', folderOUT + 'prediction_V_'+str(epoch)+'.png')
-    #
-    #     plot_scatter(np.sqrt(4 / 3 * (data['Y_TRUE'][:, 1] * data['Y_TRUE'][:, 1] + data['Y_TRUE'][:, 2] * data['Y_TRUE'][:, 2] - data['Y_TRUE'][:, 1] * data['Y_TRUE'][:, 2])),
-    #                  np.sqrt(4 / 3 * (data['Y_PRED'][:, 1] * data['Y_PRED'][:, 1] + data['Y_PRED'][:, 2] * data['Y_PRED'][:, 2] - data['Y_PRED'][:, 1] * data['Y_PRED'][:, 2])),
-    #                  'True R [mm]', 'DNN R [mm]', folderOUT + 'prediction_R_' + str(epoch) + '.png')
-    #     plot_scatter(data['Y_TRUE'][:, 3], data['Y_PRED'][:, 3], 'True Z [mm]', 'DNN Z [mm]', folderOUT + 'prediction_Z_' + str(epoch) + '.png')
+    #     plot_scatter(data['Y_TRUE'][:, 2], data['Y_PRED'][:, 2], 'True Energy [keV]', 'DNN Energy [keV]', folderOUT + 'prediction_energy3_' + str(epoch) + '.png')
+        # plot_scatter(data['Y_TRUE'][:, 1], data['Y_PRED'][:, 1], 'True U [mm]', 'DNN U [mm]', folderOUT + 'prediction_U_'+str(epoch)+'.png')
+        # plot_scatter(data['Y_TRUE'][:, 2], data['Y_PRED'][:, 2], 'True V [mm]', 'DNN V [mm]', folderOUT + 'prediction_V_'+str(epoch)+'.png')
+        # plot_scatter(data['Y_TRUE'][:, 3], data['Y_PRED'][:, 3], 'True Z [mm]', 'DNN Z [mm]', folderOUT + 'prediction_Z_' + str(epoch) + '.png')
 
     # for normalized Output values
-    elif var_targets == 'energy_and_UV_position':
-        plot_scatter(denormalize(data['Y_TRUE'][:, 0], 'energy'), denormalize(data['Y_PRED'][:, 0], 'energy'), 'True Energy [keV]', 'DNN Energy [keV]', folderOUT + 'prediction_energy_' + str(epoch) + '.png')
-        plot_scatter(denormalize(data['Y_TRUE'][:,1], 'U'), denormalize(data['Y_PRED'][:,1], 'U'), 'True U [mm]', 'DNN U [mm]', folderOUT + 'prediction_U_'+str(epoch)+'.png')
-        plot_scatter(denormalize(data['Y_TRUE'][:,2], 'V'), denormalize(data['Y_PRED'][:,2], 'V'), 'True V [mm]', 'DNN V [mm]', folderOUT + 'prediction_V_'+str(epoch)+'.png')
+    # if var_targets == 'energy_and_UV_position':
+        # plot_scatter(denormalize(data['Y_TRUE'][:, 0, 0], 'energy'), denormalize(data['Y_PRED'][:, 0, 0], 'energy'), 'True Energy [keV]', 'DNN Energy [keV]', folderOUT + 'prediction_energy_' + str(epoch) + '.png')
+        # # plot_scatter(denormalize(data['Y_TRUE'][:, 0, 1], 'U'), denormalize(data['Y_PRED'][:, 0, 1], 'U'), 'True U [mm]', 'DNN U [mm]', folderOUT + 'prediction_U_'+str(epoch)+'.png')
+        # # plot_scatter(denormalize(data['Y_TRUE'][:, 0, 2], 'V'), denormalize(data['Y_PRED'][:, 0, 2], 'V'), 'True V [mm]', 'DNN V [mm]', folderOUT + 'prediction_V_'+str(epoch)+'.png')
+        # # plot_scatter(denormalize(data['Y_TRUE'][:, 0, 3], 'Z'), denormalize(data['Y_PRED'][:, 0, 3], 'Z'), 'True Z [mm]', 'DNN Z [mm]', folderOUT + 'prediction_Z_' + str(epoch) + '.png')
+        # #
+        # #
+        # # # plot_scatter(np.sqrt(4 / 3 * (data['Y_TRUE'][:, 1] * data['Y_TRUE'][:, 1] + data['Y_TRUE'][:, 2] * data['Y_TRUE'][:, 2] - data['Y_TRUE'][:, 1] * data['Y_TRUE'][:, 2])),
+        # # #              np.sqrt(4 / 3 * (data['Y_PRED'][:, 1] * data['Y_PRED'][:, 1] + data['Y_PRED'][:, 2] * data['Y_PRED'][:, 2] - data['Y_PRED'][:, 1] * data['Y_PRED'][:, 2])),
+        # # #              'True R [% R_max]', 'DNN R [% R_max]', folderOUT + 'prediction_R_' + str(epoch) + '.png')
+        # #
+        # #
+        # plot_scatter(denormalize(data['Y_TRUE'][:, 2, 0], 'energy'), denormalize(data['Y_PRED'][:, 2, 0], 'energy'), 'True Energy [keV]', 'DNN Energy [keV]', folderOUT + 'prediction_energy3_' + str(epoch) + '.png')
+        # # plot_scatter(denormalize(data['Y_TRUE'][:, 2, 1], 'U'), denormalize(data['Y_PRED'][:, 2, 1], 'U'), 'True U [mm]', 'DNN U [mm]', folderOUT + 'prediction_U3_' + str(epoch) + '.png')
+        # # plot_scatter(denormalize(data['Y_TRUE'][:, 2, 2], 'V'), denormalize(data['Y_PRED'][:, 2, 2], 'V'), 'True V [mm]', 'DNN V [mm]', folderOUT + 'prediction_V3_' + str(epoch) + '.png')
+        # # plot_scatter(denormalize(data['Y_TRUE'][:, 2, 3], 'Z'), denormalize(data['Y_PRED'][:, 2, 3], 'Z'), 'True Z [mm]', 'DNN Z [mm]', folderOUT + 'prediction_Z3_' + str(epoch) + '.png')
 
-        plot_scatter(np.sqrt(4 / 3 * (data['Y_TRUE'][:, 1] * data['Y_TRUE'][:, 1] + data['Y_TRUE'][:, 2] * data['Y_TRUE'][:, 2] - data['Y_TRUE'][:, 1] * data['Y_TRUE'][:, 2])),
-                     np.sqrt(4 / 3 * (data['Y_PRED'][:, 1] * data['Y_PRED'][:, 1] + data['Y_PRED'][:, 2] * data['Y_PRED'][:, 2] - data['Y_PRED'][:, 1] * data['Y_PRED'][:, 2])),
-                     'True R [% R_max]', 'DNN R [% R_max]', folderOUT + 'prediction_R_' + str(epoch) + '.png')
-        plot_scatter(denormalize(data['Y_TRUE'][:, 3], 'Z'), denormalize(data['Y_PRED'][:, 3], 'Z'), 'True Z [mm]', 'DNN Z [mm]', folderOUT + 'prediction_Z_' + str(epoch) + '.png')
+
+
+
+
+    #   MS Classification and regression
+    if var_targets == 'energy_and_UV_position':
+
+
+        # print data.keys()
+        # print data['Y_TRUE_1'].shape
+        # print data['Y_TRUE_2'].shape
+        # # ['Y_TRUE'].keys()
+        # print data['Y_PRED_1'].shape
+        # print data['Y_PRED_2'].shape
+        #
+        # print data['Y_PRED_1'][0, :]
+        # print data['Y_TRUE_1'][0, :]
+        # print np.argmax(data['Y_PRED_1'], axis=1)
+
+
+
+
+        plot_scatter(denormalize(data['Y_TRUE_2'][:, 0, 0], 'energy'), denormalize(data['Y_PRED_2'][:, 0, 0], 'energy'),
+                     'True Energy [keV]', 'DNN Energy [keV]', folderOUT + 'prediction_energy_' + str(epoch) + '.png')
+
+        plot_scatter(denormalize(data['Y_TRUE_2'][:, 2, 0], 'energy'), denormalize(data['Y_PRED_2'][:, 2, 0], 'energy'),
+                     'True Energy [keV]', 'DNN Energy [keV]', folderOUT + 'prediction_energy3_' + str(epoch) + '.png')
+        # plot_scatter(denormalize(data['Y_TRUE'][:, 0, 1], 'U'), denormalize(data['Y_PRED'][:, 0, 1], 'U'), 'True U [mm]', 'DNN U [mm]', folderOUT + 'prediction_U_'+str(epoch)+'.png')
+        # plot_scatter(denormalize(data['Y_TRUE'][:, 0, 2], 'V'), denormalize(data['Y_PRED'][:, 0, 2], 'V'), 'True V [mm]', 'DNN V [mm]', folderOUT + 'prediction_V_'+str(epoch)+'.png')
+        # plot_scatter(denormalize(data['Y_TRUE'][:, 0, 3], 'Z'), denormalize(data['Y_PRED'][:, 0, 3], 'Z'), 'True Z [mm]', 'DNN Z [mm]', folderOUT + 'prediction_Z_' + str(epoch) + '.png')
+        #
+        #
+
+        # plot_scatter(denormalize(data['Y_TRUE_2'][:, 2, 0], 'energy'), denormalize(data['Y_PRED_2'][:, 2, 0], 'energy'),
+        #              'True Energy [keV]', 'DNN Energy [keV]', folderOUT + 'prediction_energy3_' + str(epoch) + '.png')
+
+
+
+        plot_scatter_MS_CR(data['Y_TRUE_1'], denormalize(data['Y_TRUE_2'][:, 0, 0], 'energy'),
+                           np.rint(data['Y_PRED_1']), denormalize(data['Y_PRED_2'][:, 0, 0], 'energy'), 1,
+                           'True Energy [keV]', 'DNN Energy [keV]',
+                           folderOUT + 'prediction_multi_energy1_' + str(epoch) + '.png')
+        plot_scatter_MS_CR(data['Y_TRUE_1'], denormalize(data['Y_TRUE_2'][:, 1, 0], 'energy'),
+                           np.rint(data['Y_PRED_1']), denormalize(data['Y_PRED_2'][:, 1, 0], 'energy'), 2,
+                           'True Energy [keV]', 'DNN Energy [keV]',
+                           folderOUT + 'prediction_multi_energy2_' + str(epoch) + '.png')
+
+        plot_scatter_MS_CR(data['Y_TRUE_1'], denormalize(data['Y_TRUE_2'][:, 2, 0], 'energy'),
+                           np.rint(data['Y_PRED_1']), denormalize(data['Y_PRED_2'][:, 2, 0], 'energy'), 3,
+                           'True Energy [keV]', 'DNN Energy [keV]', folderOUT + 'prediction_multi_energy3_' + str(epoch) + '.png')
+
+        plot_scatter_MS_CR(data['Y_TRUE_1'], denormalize(data['Y_TRUE_2'][:, 3, 0], 'energy'),
+                           np.rint(data['Y_PRED_1']), denormalize(data['Y_PRED_2'][:, 3, 0], 'energy'), 4,
+                           'True Energy [keV]', 'DNN Energy [keV]',
+                           folderOUT + 'prediction_multi_energy4_' + str(epoch) + '.png')
+        plot_scatter_MS_CR(data['Y_TRUE_1'], denormalize(data['Y_TRUE_2'][:, 4, 0], 'energy'),
+                           np.rint(data['Y_PRED_1']), denormalize(data['Y_PRED_2'][:, 4, 0], 'energy'), 5,
+                           'True Energy [keV]', 'DNN Energy [keV]',
+                           folderOUT + 'prediction_multi_energy5_' + str(epoch) + '.png')
+
+
+        plot_scatter(data['Y_TRUE_1'], data['Y_PRED_1'],
+                     'True Number Cluster', 'DNN Number Cluster [keV]', folderOUT + 'prediction_numCluster_' + str(epoch) + '.png', alpha=0.3)
+
+
+        # plot_scatter(denormalize(data['Y_TRUE'][:, 2, 1], 'U'), denormalize(data['Y_PRED'][:, 2, 1], 'U'), 'True U [mm]', 'DNN U [mm]', folderOUT + 'prediction_U3_' + str(epoch) + '.png')
+        # plot_scatter(denormalize(data['Y_TRUE'][:, 2, 2], 'V'), denormalize(data['Y_PRED'][:, 2, 2], 'V'), 'True V [mm]', 'DNN V [mm]', folderOUT + 'prediction_V3_' + str(epoch) + '.png')
+        # plot_scatter(denormalize(data['Y_TRUE'][:, 2, 3], 'Z'), denormalize(data['Y_PRED'][:, 2, 3], 'Z'), 'True Z [mm]', 'DNN Z [mm]', folderOUT + 'prediction_Z3_' + str(epoch) + '.png')
+
+
 
     return
 
@@ -80,14 +155,41 @@ def validation_mc_plots(folderOUT, data, epoch, sources, position, target):
         a, b, c = 1, 2, 3
     if target == 'position':
         a, b, c = 0, 1, 2
-    if target == 'time':
+    if target == 'Z':
         c = 0
+    if target == 'U':
+        a = 0
+    if target == 'V':
+        b = 0
+
+
+
+    print data.keys()
+    print data['EVENT_INFO'].keys()
+
+
+    # mask1 = data['EVENT_INFO']['CCCorrectedEnergy'] > 2609
+    # mask2 = data['EVENT_INFO']['CCCorrectedEnergy'] < 2619
+    # mask = np.logical_and(mask1, mask2)
+    # mask_energy = (data['EVENT_INFO']['MCEnergy'] > 2609) & (data['EVENT_INFO']['MCEnergy'] < 2619)
+    # print '<<<<'
+
+    # mask_energy = mask_energy[:,0]
+    # mask_energy = np.reshape(mask_energy, (-1))
+    # print mask_energy
+    # print np.count_nonzero(mask_energy)
+
+
+
+
+    # mask = np.logical_and(data['EVENT_INFO']['CCNumberClusters']==1, data['EVENT_INFO']['CCNumberUWires']==1)
 
     if target == 'energy' or target == 'energy_and_UV_position':
         data['Y_TRUE'][:, 0] = denormalize(data['Y_TRUE'][:, 0], 'energy')
         data['Y_PRED'][:, 0] = denormalize(data['Y_PRED'][:, 0], 'energy')
 
-        plot_diagonal(x=data['Y_TRUE'][:, 0], y=data['Y_PRED'][:, 0], xlabel=name_True, ylabel=name_DNN, mode='Energy',
+        plot_diagonal(x=np.reshape(data['Y_TRUE'][:, 0],(-1)), y=np.reshape(data['Y_PRED'][:, 0],(-1)),
+                      xlabel=name_True, ylabel=name_DNN, mode='Energy',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Energy_DNN_' + epoch + '.pdf'))
         plot_diagonal(x=data['Y_TRUE'][:, 0], y=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], xlabel=name_True,
                   ylabel=name_EXO, mode='Energy',
@@ -95,20 +197,27 @@ def validation_mc_plots(folderOUT, data, epoch, sources, position, target):
         plot_diagonal(x=data['Y_PRED'][:, 0], y=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], xlabel=name_DNN,
                   ylabel=name_EXO, mode='Energy',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Energy_Both_' + epoch + '.pdf'))
-        plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0],
-                  dTrue=data['Y_TRUE'][:, 0],
-                  mode='Energy',
-                  fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
+        # plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0],
+        #           dTrue=data['Y_TRUE'][:, 0],
+        #           mode='Energy',
+        #           fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
         plot_residual_histo(dTrue=data['Y_TRUE'][:, 0], dDNN=data['Y_PRED'][:, 0],
                             dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0],
-                            title='Energy', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO, limit=100,
+                            title='Energy', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO, limit=150,
                             fOUT=folderOUT + dir_residual + sources + '_' + position + '_Energy_' + epoch + '.pdf')
 
-    if target == 'position' or target == 'energy_and_UV_position':
+        # plot_hexbin(data['EVENT_INFO']['MCPosX'][:, 0], data['EVENT_INFO']['MCPosY'][:, 0], np.absolute(data['Y_TRUE'][:, 0] - data['Y_PRED'][:, 0]), np.absolute(data['Y_TRUE'][:, 0] - data['EVENT_INFO']['CCCorrectedEnergy'][:, 0]),
+        #             'X [mm]', 'Y[mm]',
+        #             fOUT=folderOUT + dir_residual + sources + '_' + position + '_Energy_DNN_hexbin_' + epoch + '.pdf')
+
+        # plot_hexbin(data['EVENT_INFO']['MCPosX'][:, 0], data['EVENT_INFO']['MCPosY'][:, 0], np.absolute(data['Y_TRUE'][:, 0] - data['EVENT_INFO']['CCCorrectedEnergy'][:, 0]), 'X [mm]', 'Y[mm]',
+        #             fOUT=folderOUT + dir_residual + sources + '_' + position + '_Energy_EXO_hexbin_' + epoch + '.pdf')
+
+
+    if target == 'position' or target == 'energy_and_UV_position' or target == 'U':
+
         data['Y_TRUE'][:, a] = denormalize(data['Y_TRUE'][:, a], 'U')
         data['Y_PRED'][:, a] = denormalize(data['Y_PRED'][:, a], 'U')
-        data['Y_TRUE'][:, b] = denormalize(data['Y_TRUE'][:, b], 'V')
-        data['Y_PRED'][:, b] = denormalize(data['Y_PRED'][:, b], 'V')
 
         plot_diagonal(x=data['Y_TRUE'][:, a], y=data['Y_PRED'][:, a], xlabel=name_True, ylabel=name_DNN, mode='U',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_U_DNN_' + epoch + '.pdf'))
@@ -116,72 +225,397 @@ def validation_mc_plots(folderOUT, data, epoch, sources, position, target):
                   ylabel=name_EXO, mode='U',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_U_EXO_' + epoch + '.pdf'))
 
+        plot_spectrum(dCNN=data['Y_PRED'][:, a], dEXO=data['EVENT_INFO']['CCPosU'][:, 0], dTrue=data['Y_TRUE'][:, a],
+                  mode='U', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_U_' + epoch + '.pdf'))
+
+        # plot_residual_histo(dTrue=data['Y_TRUE'][:, a], dDNN=data['Y_PRED'][:, a],
+        #                     dEXO=data['EVENT_INFO']['CCPosU'][:, 0],
+        #                     title='U', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO, limit=5,
+        #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_' + epoch + '.pdf')
+
+
+    # Check 1 wire and other events
+        mask_SS = data['EVENT_INFO']['CCIsSS'] == 1
+
+        mask_SS_peak = np.logical_and(mask_SS, data['EVENT_INFO']['MCEnergy'] > 2604)
+        mask_SS_peak = np.logical_and(mask_SS_peak, data['EVENT_INFO']['MCEnergy'] < 2624)
+
+        mask_num_U_is_1 = data['EVENT_INFO']['CCNumberUWires'] == 1
+        mask_num_U_is_1 = np.logical_and(mask_num_U_is_1, data['EVENT_INFO']['CCIsSS'] == 1)
+        mask_num_U_is_1 = np.logical_and(mask_num_U_is_1, data['EVENT_INFO']['MCEnergy'] > 2604)
+        mask_num_U_is_1 = np.logical_and(mask_num_U_is_1, data['EVENT_INFO']['MCEnergy'] < 2624)
+        # mask_num_U_is_1 = np.logical_and(mask_num_U_is_1, np.reshape(data['Y_TRUE'][:, a] != 1000, (-1,)))
+
+
+        mask_num_U_is_not_1 = data['EVENT_INFO']['CCNumberUWires'] > 1
+        mask_num_U_is_not_1 = np.logical_and(mask_num_U_is_not_1, data['EVENT_INFO']['CCIsSS'] == 1)
+        mask_num_U_is_not_1 = np.logical_and(mask_num_U_is_not_1, data['EVENT_INFO']['MCEnergy'] > 2604)
+        mask_num_U_is_not_1 = np.logical_and(mask_num_U_is_not_1, data['EVENT_INFO']['MCEnergy'] < 2624)
+        # mask_num_U_is_not_1 = np.logical_and(mask_num_U_is_not_1, np.reshape(data['Y_TRUE'][:, a] != 1000, (-1,)))
+
+
+        plot_boxplot(dTrue=np.reshape(data['Y_TRUE'][:, a], (-1,))[mask_SS_peak], dTrue_masked=np.reshape(data['Y_TRUE'][:, a], (-1,))[mask_num_U_is_1],
+                     dEXO=data['EVENT_INFO']['CCPosU'][:, 0][mask_SS_peak], dEXO_masked=data['EVENT_INFO']['CCPosU'][:, 0][mask_num_U_is_1],
+                     dDNN=data['Y_PRED'][:, a][mask_SS_peak], dDNN_masked=data['Y_PRED'][:, a][mask_num_U_is_1],
+                     title='Boxplot', name_DNN_masked='DNN onewire', name_EXO_masked='EXO onewire',
+                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_boxplot_' + epoch + '.pdf')
+
+
+        #  TODO: sigma checken ob richtig; fuer EXO zu klein
+        plot_residual_histo(dTrue=np.reshape(data['Y_TRUE'][:, a], (-1,))[mask_num_U_is_1], dDNN=data['Y_PRED'][:, a][mask_num_U_is_1],
+                            dEXO=data['EVENT_INFO']['CCPosU'][:, 0][mask_num_U_is_1], limit=10,
+                            title='U', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                            fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_SS_onewire_' + epoch + '.pdf')
+
+        plot_residual_histo(dTrue=np.reshape(data['Y_TRUE'][:, a], (-1))[mask_num_U_is_not_1], dDNN=data['Y_PRED'][:, a][mask_num_U_is_not_1],
+                            dEXO=data['EVENT_INFO']['CCPosU'][:, 0][mask_num_U_is_not_1], limit=10,
+                            title='U', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                            fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_SS_multiwire_' + epoch + '.pdf')
+
+        plot_residual_histo(dTrue=np.reshape(data['Y_TRUE'][:, a], (-1))[mask_SS], dDNN=data['Y_PRED'][:, a][mask_SS],
+                            dEXO=data['EVENT_INFO']['CCPosU'][:, 0][mask_SS], limit=10,
+                            title='U', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                            fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_SS_' + epoch + '.pdf')
+
+        plot_residual_histo(dTrue=np.reshape(data['Y_TRUE'][:, a], (-1,))[mask_num_U_is_1], dDNN=data['Y_PRED'][:, a][mask_num_U_is_1],
+                            dEXO=data['EVENT_INFO']['CCPosU'][:, 0][mask_num_U_is_1], limit=100,
+                            title='U', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                            fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_SS_onewire_100_' + epoch + '.pdf')
+
+        plot_residual_histo(dTrue=np.reshape(data['Y_TRUE'][:, a], (-1))[mask_num_U_is_not_1], dDNN=data['Y_PRED'][:, a][mask_num_U_is_not_1],
+                            dEXO=data['EVENT_INFO']['CCPosU'][:, 0][mask_num_U_is_not_1], limit=100,
+                            title='U', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                            fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_SS_multiwire_100_' + epoch + '.pdf')
+
+        plot_residual_histo(dTrue=np.reshape(data['Y_TRUE'][:, a], (-1))[mask_SS], dDNN=data['Y_PRED'][:, a][mask_SS],
+                            dEXO=data['EVENT_INFO']['CCPosU'][:, 0][mask_SS], limit=100,
+                            title='U', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+                            fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_SS_100_' + epoch + '.pdf')
+
+
+
+        plot_residual_correlation(dTrue=np.reshape(data['Y_TRUE'][:, a], (-1,))[mask_SS], dDNN=data['Y_PRED'][:, a][mask_SS],
+                            dEXO=data['EVENT_INFO']['CCPosU'][:, 0][mask_SS], limit=6,
+                            mode='U',
+                            fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_SS_correlation_' + epoch + '.pdf')
+
+        #  Plot of residual as funciton of max of neighbouring channel:
+        limit = 10
+        # channel_1 = np.zeros((3, data['Y_TRUE'].shape[0]))
+        # channel_2 = np.zeros((2, data['Y_TRUE'].shape[0]))
+        # channel_3 = np.zeros((2, data['Y_TRUE'].shape[0]))
+
+        # print '>>>', data['Y_TRUE'].shape
+        # print channel_1.shape
+        # values =[]
+
+        # mask_channel_1 = np.zeros((data['Y_TRUE'].shape[0],))
+
+        mask_channel_1 = data['EVENT_INFO']['CCNumberUWires'] == 1
+        mask_channel_1 = np.logical_and(mask_channel_1, data['EVENT_INFO']['CCIsSS'] == 1)
+        mask_channel_1 = np.logical_and(mask_channel_1, data['Y_TRUE'][:, a] - data['Y_PRED'][:, a] < limit)
+        mask_channel_1 = np.logical_and(mask_channel_1, data['Y_TRUE'][:, a] - data['EVENT_INFO']['CCPosU'][:, a] < limit)
+        mask_channel_1 = np.logical_and(mask_channel_1, mask_SS_peak)
+
+
+
+        # for eventnumber in range(data['Y_TRUE'].shape[0]):
+        #     if data['EVENT_INFO']['CCNumberUWires'][eventnumber] == 1:
+        #         if data['EVENT_INFO']['CCIsSS'][eventnumber] == 1:
+        #             max_channel_1_TPC1 = np.amax(data['wf'][0, eventnumber, :, :, :])
+        #             max_channel_1_TPC2 = np.amax(data['wf'][2, eventnumber, :, :, :])
+        #             tpc = 0
+        #
+        #             if max_channel_1_TPC1 > max_channel_1_TPC2:
+        #                 max_channel = max_channel_1_TPC1
+        #                 arg_max_1 = np.unravel_index(np.argmax(data['wf'][0, eventnumber, :, :, :]), data['wf'][0, eventnumber, :, :, :].shape)
+        #                 tpc = 0
+        #             else:
+        #                 max_channel = max_channel_1_TPC2
+        #                 arg_max_1 = np.unravel_index(np.argmax(data['wf'][2, eventnumber, :, :, :]), data['wf'][2, eventnumber, :, :, :].shape)
+        #                 tpc = 2
+        #
+        #             i,j,k = arg_max_1
+        #
+        #             try:
+        #                 channel_1plus = np.amax(data['wf'][tpc, eventnumber, i-25:i+25, j+1, k])
+        #             except:
+        #                 channel_1plus = 0
+        #
+        #             try:
+        #                 channel_1minus = np.amax(data['wf'][tpc, eventnumber, i-25:i+25, j-1, k])
+        #             except:
+        #                 channel_1minus = 0
+        #
+        #             channel_1[0, eventnumber] = max([channel_1plus, channel_1minus])
+        #
+        #             # if channel_1[0, eventnumber] == 0:
+        #                 # print channel_1plus, '\t', channel_1minus
+        #
+        #
+        #             channel_1[1, eventnumber] = data['Y_TRUE'][eventnumber, a] - data['Y_PRED'][eventnumber, a]
+        #             channel_1[2, eventnumber] = data['Y_TRUE'][eventnumber, a] - data['EVENT_INFO']['CCPosU'][eventnumber, a]
+        #
+        #             if np.absolute(channel_1[1, eventnumber]) < limit and channel_1[2, eventnumber] < limit:
+        #                 mask_channel_1[eventnumber] = 1
+        #             else:
+        #                 print '>>>'
+        #                 print 'true: \t', data['Y_TRUE'][eventnumber, a]
+        #                 print 'DNN: \t', data['Y_PRED'][eventnumber, a]
+        #                 print 'EXO: \t', data['EVENT_INFO']['CCPosU'][eventnumber, a]
+        #                 print 'PCD: \t', data['EVENT_INFO']['PCDPosU'][eventnumber, :]
+        #                 print 'PCD: \t', data['EVENT_INFO']['PCDEnergy'][eventnumber, :]
+        #
+        #             # values.append((channel_1[0, eventnumber], channel_1[1, eventnumber], channel_1[2, eventnumber]))
+        #
+        # # print mask_channel_1
+        # mask_channel_1 = mask_channel_1 != 0
+
+        channel_1 = data['EVENT_INFO']['wf_max_neighbour'][:][mask_channel_1], \
+                    data['Y_TRUE'][:, a][mask_channel_1] - data['Y_PRED'][:, a][mask_channel_1],\
+                    data['Y_TRUE'][:, a][mask_channel_1] - data['EVENT_INFO']['CCPosU'][:, a][mask_channel_1]
+
+
+        # print mask_channel_1
+        # dtype = [('max_channel', float), ('res_dnn', float), ('res_exo', float)]
+        # channel_1_sorted = np.array(values, dtype=dtype)
+        channel_1_sorted = zip(*sorted(zip(channel_1[0], channel_1[1], channel_1[2])))
+        # print channel_1_sorted
+
+        # channel_1_sorted = channel_1_sorted.view(np.float64).reshape(channel_1_sorted.shape + (-1,))
+
+        # plt.scatter(channel_1[0][mask_channel_1], channel_1[1][mask_channel_1], alpha=0.25, marker='.')
+        # plt.scatter(channel_1[0][mask_channel_1], channel_1[2][mask_channel_1], alpha=0.25, color='red', marker='.')
+        # plt.plot(running_mean(channel_1_sorted[0], 50), running_mean(np.absolute(channel_1_sorted[1]), 50))
+        # plt.plot(running_mean(channel_1_sorted[0], 50), running_mean(np.absolute(channel_1_sorted[2]), 50), color='red')
+        # plt.plot(diag, diag, 'k--')
+        # plt.legend(loc="best")
+        # plt.ylabel('|Residual|')
+        # plt.xlabel('maximum of neighbouring channel')
+
+        # plt.gca().set_yscale('log')
+        # plt.xlim(xmin=0, xmax=3300)
+
+        # plt.ylim(ymin=-limit, ymax=limit)
+
+
+
+        from matplotlib.ticker import NullFormatter
+
+        # color = 'viridis'
+
+        # cm = plt.cm.get_cmap(color)
+
+        nullfmt = NullFormatter()  # no labels
+
+        # definitions for the axes
+        left, width = 0.1, 0.8
+        bottom, height = 0.1, 0.8
+        bottom_h = left_h = left + width + 0.02
+
+        rect_scatter = [left, bottom, width, height]
+        rect_histx = [left, bottom_h, width, 0.2]
+        rect_histy = [left_h, bottom, 0.5, height]
+        rect_legend = [left_h, bottom_h, 0.5, 0.2]
+
+        # start with a rectangular Figure
+        plt.figure(1, figsize=(10, 8))
+
+        axScatter = plt.axes(rect_scatter)
+        axHistx = plt.axes(rect_histx)
+        axHisty = plt.axes(rect_histy)
+        axLegend = plt.axes(rect_legend)
+
+
+        axScatter.set_xlabel('max value neighbouring channel')
+        axScatter.set_ylabel(r'Residual $r = U_{pred} - U_{true}$')
+        axHistx.set_ylabel('mean $\mu(|r|)$ ')
+        axHisty.set_xlabel('Counts')
+
+        axLegend.text(0.1, 0.6, 'DNN: \n$\mu=%.1f,$ $\sigma=%.1f$' % (np.mean(channel_1[1]), np.std(channel_1[1])), color='navy', alpha=0.5)
+        axLegend.text(0.1, 0.2, 'EXO: \n$\mu=%.1f,$ $\sigma=%.1f$' % (np.mean(channel_1[2]), np.std(channel_1[2])), color='red', alpha=0.5)
+
+        # no labels
+        axHistx.xaxis.set_major_formatter(nullfmt)
+        axHisty.yaxis.set_major_formatter(nullfmt)
+
+        axLegend.xaxis.set_major_formatter(nullfmt)
+        axLegend.yaxis.set_major_formatter(nullfmt)
+        plt.xticks([])
+        plt.yticks([])
+
+        # now determine nice limits by hand:
+        binwidth = 0.15
+        xymax = np.max([np.max(np.fabs(channel_1[0])), np.max(np.fabs(channel_1[1]))])
+        lim = (int(xymax / binwidth) + 1) * binwidth
+        # lim = 4
+
+        bins_hex = int(lim * 2. / binwidth)
+        # the scatter plot:
+        # axScatter.hexbin(x, y, cmap=color, gridsize=bins_hex)
+        axScatter.scatter(channel_1[0], channel_1[1], alpha=0.2, marker='.', color='navy')
+        axScatter.scatter(channel_1[0], channel_1[2], alpha=0.2, color='red', marker='.')
+
+
+        # H, xedges, yedges = np.histogram2d(x, y, bins=1000)
+        # axScatter.imshow(H, cmap='PuBu')
+        # axScatter.contour(x, y, cmap='PuBu')
+
+        # now determine nice limits by hand:
+
+        # xymax = np.max([np.max(np.fabs(x)), np.max(np.fabs(y))])
+        # lim = (int(xymax / binwidth) + 1) * binwidth
+        # lim = 4
+
+        axScatter.set_xlim((0, lim))
+        axScatter.set_ylim((-limit, limit))
+
+        bins = np.arange(-lim, lim + binwidth, binwidth)
+
+        # n_x, bins_x, patches_x = axHistx.hist(x, bins=bins)
+        axHisty.hist(channel_1[1], bins=bins, orientation='horizontal', alpha=0.5, color='navy')
+        axHisty.hist(channel_1[2], bins=bins, orientation='horizontal', alpha=0.5, color='red')
+
+        axHistx.set_xlim(axScatter.get_xlim())
+        axHisty.set_ylim(axScatter.get_ylim())
+
+        # col_x = n_x / max(n_x)
+        # bin_centers_x = 0.5 * (bins_x[:-1] + bins_x[1:])
+        # for c, p in zip(col_x, patches_x):
+        #     plt.setp(p, 'facecolor', cm(c))
+        #     plt.setp(p, 'edgecolor', cm(c), alpha=1)
+        # axHistx.plot(bin_centers_x, n_x, color=cm(max(n_x)), )
+        axHistx.plot(running_mean(channel_1_sorted[0], 100), running_mean(np.absolute(channel_1_sorted[1]), 100), alpha=0.5, color='navy')
+        axHistx.plot(running_mean(channel_1_sorted[0], 100), running_mean(np.absolute(channel_1_sorted[2]), 100), color='red', alpha=0.5)
+
+
+
+        # col_y = n_y / max(n_y)
+        # bin_centers_y = 0.5 * (bins_y[:-1] + bins_y[1:])
+        # for c, p in zip(col_y, patches_y):
+        #     plt.setp(p, 'facecolor', cm(c))
+        #     plt.setp(p, 'edgecolor', cm(c), alpha=1)
+        # axHisty.plot(n_y, bin_centers_y, color=cm(max(n_y)))
+
+        plt.savefig(folderOUT + dir_residual + sources + '_' + position + '_U_wirecheck_' + epoch + '.pdf', bbox_inches='tight')
+        plt.clf()
+        plt.close()
+
+
+
+
+    if target == 'position' or target == 'energy_and_UV_position' or target == 'V':
+        data['Y_TRUE'][:, b] = denormalize(data['Y_TRUE'][:, b], 'V')
+        data['Y_PRED'][:, b] = denormalize(data['Y_PRED'][:, b], 'V')
+
         plot_diagonal(x=data['Y_TRUE'][:, b], y=data['Y_PRED'][:, b], xlabel=name_True, ylabel=name_DNN, mode='V',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_V_DNN_' + epoch + '.pdf'))
         plot_diagonal(x=data['Y_TRUE'][:, b], y=data['EVENT_INFO']['CCPosV'][:, 0], xlabel=name_True,
                   ylabel=name_EXO, mode='V',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_V_EXO_' + epoch + '.pdf'))
 
-
-
-
-        plot_diagonal(x=np.sqrt(data['Y_TRUE'][:, a] * data['Y_TRUE'][:, a] + data['Y_TRUE'][:, 2] * data['Y_TRUE'][:, 2]),
-                  y=np.sqrt(4 / 3 * (data['Y_PRED'][:, a] * data['Y_PRED'][:, a] + data['Y_PRED'][:, b] * data['Y_PRED'][:, b] - data['Y_PRED'][:, a] * data['Y_PRED'][:, b])),
-                  xlabel=name_EXO, ylabel=name_DNN, mode='R',
-                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_R_DNN_' + epoch + '.pdf'))
-        plot_diagonal(x=np.sqrt(data['Y_TRUE'][:, a] * data['Y_TRUE'][:, a] + data['Y_TRUE'][:, 2] * data['Y_TRUE'][:, 2]),
-                  y=np.sqrt(4 / 3 * (data['EVENT_INFO']['CCPosU'][:, 0] * data['EVENT_INFO']['CCPosU'][:, 0] + data['EVENT_INFO']['CCPosV'][:, 0] * data['EVENT_INFO']['CCPosV'][:, 0] - data['EVENT_INFO']['CCPosU'][:, 0] * data['EVENT_INFO']['CCPosV'][:, 0])),
-                  xlabel=name_EXO, ylabel=name_DNN, mode='R',
-                  fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_R_EXO_' + epoch + '.pdf'))
-
-        plot_spectrum(dCNN=data['Y_PRED'][:, a], dEXO=data['EVENT_INFO']['CCPosU'][:, 0], dTrue=data['Y_TRUE'][:, a],
-                  mode='U', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_U_' + epoch + '.pdf'))
         plot_spectrum(dCNN=data['Y_PRED'][:, b], dEXO=data['EVENT_INFO']['CCPosV'][:, 0], dTrue=data['Y_TRUE'][:, b],
-                  mode='V', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_V_' + epoch + '.pdf'))
+                      mode='V', fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_V_' + epoch + '.pdf'))
 
-
-
-        plot_residual_histo(dTrue=data['Y_TRUE'][:, a], dDNN=data['Y_PRED'][:, a], dEXO=data['EVENT_INFO']['CCPosU'][:, 0],
-                            title='U', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO, limit=5,
-                            fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_' + epoch + '.pdf')
-        plot_residual_histo(dTrue=data['Y_TRUE'][:, b], dDNN=data['Y_PRED'][:, b], dEXO=data['EVENT_INFO']['CCPosV'][:, 0],
+        plot_residual_histo(dTrue=data['Y_TRUE'][:, b], dDNN=data['Y_PRED'][:, b],
+                            dEXO=data['EVENT_INFO']['CCPosV'][:, 0],
                             title='V', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO, limit=5,
                             fOUT=folderOUT + dir_residual + sources + '_' + position + '_V_' + epoch + '.pdf')
 
-    if target == 'time' or target =='position' or target == 'energy_and_UV_position':
+        plot_residual_correlation(dTrue=data['Y_TRUE'][:, b], dDNN=data['Y_PRED'][:, b],
+                            dEXO=data['EVENT_INFO']['CCPosV'][:, 0],
+                            title='V', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO, limit=5,
+                            fOUT=folderOUT + dir_residual + sources + '_' + position + '_V_correlation_' + epoch + '.pdf')
+
+        #  HEXBIN of energy resolution: TODO: not ready yet
+        # fig, axs = plt.subplots(ncols=2, sharey=True, figsize=(7, 4))
+        # fig.subplots_adjust(hspace=0.5, left=0.07, right=0.93)
+        # ax = axs[0]
+        # hb = ax.hexbin(x, y, gridsize=50, cmap='inferno')
+        # ax.axis([xmin, xmax, ymin, ymax])
+        # ax.set_title("Hexagon binning")
+        # cb = fig.colorbar(hb, ax=ax)
+        # cb.set_label('counts')
+        #
+        # fig, axs = plt.subplots(ncols=2, sharey=True, figsize=(7, 4))
+        # fig.subplots_adjust(hspace=0.5, left=0.07, right=0.93)
+        # ax = axs[0]
+        # hb = ax.hexbin(x, y, gridsize=50, cmap='inferno')
+        # ax.axis([xmin, xmax, ymin, ymax])
+        # ax.set_title("Hexagon binning")
+        # cb = fig.colorbar(hb, ax=ax)
+        # cb.set_label('counts')
+        # plt.savefig(folderOUT + dir_scatter + sources + '_' + position + '_hexbin_' + epoch + '.pdf', bbox_inches='tight')
+        # plt.clf()
+        # plt.close()
+
+
+        # plot_diagonal(x=np.sqrt(data['Y_TRUE'][:, a] * data['Y_TRUE'][:, a] + data['Y_TRUE'][:, 2] * data['Y_TRUE'][:, 2]),
+        #           y=np.sqrt(4 / 3 * (data['Y_PRED'][:, a] * data['Y_PRED'][:, a] + data['Y_PRED'][:, b] * data['Y_PRED'][:, b] - data['Y_PRED'][:, a] * data['Y_PRED'][:, b])),
+        #           xlabel=name_EXO, ylabel=name_DNN, mode='R',
+        #           fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_R_DNN_' + epoch + '.pdf'))
+        # plot_diagonal(x=np.sqrt(data['Y_TRUE'][:, a] * data['Y_TRUE'][:, a] + data['Y_TRUE'][:, 2] * data['Y_TRUE'][:, 2]),
+        #           y=np.sqrt(4 / 3 * (data['EVENT_INFO']['CCPosU'][:, 0] * data['EVENT_INFO']['CCPosU'][:, 0] + data['EVENT_INFO']['CCPosV'][:, 0] * data['EVENT_INFO']['CCPosV'][:, 0] - data['EVENT_INFO']['CCPosU'][:, 0] * data['EVENT_INFO']['CCPosV'][:, 0])),
+        #           xlabel=name_EXO, ylabel=name_DNN, mode='R',
+        #           fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_R_EXO_' + epoch + '.pdf'))
+
+
+
+
+
+        #
+        # plot_residual_histo(dTrue=np.reshape(denormalize(data['Y_TRUE'][:, a], 'U'), (-1,))[mask_num_V_is_not_1], dDNN=np.reshape(denormalize(data['Y_PRED'][:, a], 'U'), (-1,))[mask_num_V_is_not_1],
+        #                     dEXO=np.reshape(data['EVENT_INFO']['CCPosU'][:, 0], (-1,))[mask_num_V_is_not_1],
+        #                     title='U', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO, limit=1000,
+        #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_U_not1wire_' + epoch + '.pdf')
+
+
+
+    if target == 'Z' or target =='position' or target == 'energy_and_UV_position':
         data['Y_PRED'][:, c] = denormalize(data['Y_PRED'][:, c], 'Z')
         data['Y_TRUE'][:, c] = denormalize(data['Y_TRUE'][:, c], 'Z')
 
-        # plot_diagonal(x=data['Y_TRUE'][:, c], y=data['Y_PRED'][:, c], xlabel=name_True, ylabel=name_DNN, mode='Time',
-        #               fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Time_DNN_' + epoch + '.pdf'))
-        # plot_diagonal(x=data['Y_TRUE'][:, c], y=data['EVENT_INFO']['CCCollectionTime'][:, 0], xlabel=name_True,
-        #               ylabel=name_EXO, mode='Time',
-        #               fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Time_EXO_' + epoch + '.pdf'))
+
+        # plot_diagonal(x=data['Y_TRUE'][:, c], y=data['Y_PRED'][:, c], xlabel=name_True, ylabel=name_DNN, mode='Z',
+        #           fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Z_DNN_' + epoch + '.pdf'))
+        # plot_diagonal(x=data['Y_TRUE'][:, c], y=data['EVENT_INFO']['CCPosZ'][:, 0], xlabel=name_True,
+        #           ylabel=name_EXO, mode='Z',
+        #           fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Z_EXO_' + epoch + '.pdf'))
+        #
+        # plot_spectrum(dCNN=data['Y_PRED'][:, c],
+        #               dEXO=data['EVENT_INFO']['CCPosZ'][:, 0],
+        #               dTrue=data['Y_TRUE'][:, c], mode='Z',
+        #               fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Z_' + epoch + '.pdf'))
+        #
+        #
+        # plot_residual_histo(dTrue=data['Y_TRUE'][:, c], dDNN=data['Y_PRED'][:, c],
+        #             dEXO=data['EVENT_INFO']['CCPosZ'][:, 0], limit=5,
+        #             title='Z', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
+        #             fOUT=folderOUT + dir_residual + sources + '_' + position + '_Z_' + epoch + '.pdf')
+
+
+
+        # print data['Y_TRUE'].shape
+        # print data['Y_PRED'].shape
+        # print data['EVENT_INFO']['CCPosZ'].shape
 
         plot_diagonal(x=data['Y_TRUE'][:, c], y=data['Y_PRED'][:, c], xlabel=name_True, ylabel=name_DNN, mode='Z',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Z_DNN_' + epoch + '.pdf'))
-        plot_diagonal(x=data['Y_TRUE'][:, c], y=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), xlabel=name_True,
+        plot_diagonal(x=data['Y_TRUE'][:, c], y=data['EVENT_INFO']['CCPosZ'][:, 0], xlabel=name_True,
                   ylabel=name_EXO, mode='Z',
                   fOUT=(folderOUT + dir_scatter + sources + '_' + position + '_Z_EXO_' + epoch + '.pdf'))
-        # plot_spectrum(dCNN=data['Y_PRED'][:, c], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0],
-        #               dTrue=data['Y_TRUE'][:, c],
-        #               mode='Time',
-        #               fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Time_' + epoch + '.pdf'))
 
         plot_spectrum(dCNN=data['Y_PRED'][:, c],
-                      dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]),
+                      dEXO=data['EVENT_INFO']['CCPosZ'][:, 0],
                       dTrue=data['Y_TRUE'][:, c], mode='Z',
                       fOUT=(folderOUT + dir_spectrum + sources + '_' + position + '_Z_' + epoch + '.pdf'))
 
-        # plot_residual_histo(dTrue=data['Y_TRUE'][:, c], dDNN=data['Y_PRED'][:, c], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0],
-        #                     title='Time', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
-        #                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_Time_' + epoch + '.pdf')
+
         plot_residual_histo(dTrue=data['Y_TRUE'][:, c], dDNN=data['Y_PRED'][:, c],
-                    dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), limit=5,
+                    dEXO=data['EVENT_INFO']['CCPosZ'][:, 0], limit=5,
+                    # dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), limit=5,
                     title='Z', name_True=name_True, name_DNN=name_DNN, name_EXO=name_EXO,
                     fOUT=folderOUT + dir_residual + sources + '_' + position + '_Z_' + epoch + '.pdf')
-
-
 
     # plot_scatter_hist2d(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
     #                     fOUT=folderOUT + '/3prediction-scatter/prediction_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
@@ -192,62 +626,107 @@ def validation_mc_plots(folderOUT, data, epoch, sources, position, target):
     # plot_residual_hist2d(E_x=data['E_True'][Multi], E_y=data['E_CNN'][Multi], name_x=name_True, name_y=name_CNN,
     #                      fOUT=folderOUT + '/5residual-scatter/residual_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
 
-def validation_data_plots(folderOUT, data, epoch, sources, position):
+
+    return
+
+def running_mean(x, N):
+    cumsum = np.cumsum(np.insert(x, 0, 0))
+    return (cumsum[N:] - cumsum[:-N]) / float(N)
+
+
+
+def validation_data_plots(folderOUT, data, epoch, sources, position, var_targets):
     name_DNN = 'DNN'
     name_EXO = 'EXO-Recon'
     peakpos = 2614.5
 
-    plot_diagonal(x=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], y=data['Y_PRED'][:, 0], xlabel=name_EXO,
-                  ylabel=name_DNN, mode='Energy',
-                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
-    plot_diagonal(x=data['EVENT_INFO']['CCPosU'][:, 0], y=data['Y_PRED'][:, 1], xlabel=name_EXO, ylabel=name_DNN, mode='U',
-                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_U_' + epoch + '.pdf'))
-    plot_diagonal(x=data['EVENT_INFO']['CCPosV'][:, 0], y=data['Y_PRED'][:, 2], xlabel=name_EXO, ylabel=name_DNN, mode='V',
-                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_V_' + epoch + '.pdf'))
 
-    plot_diagonal(x=data['EVENT_INFO']['CCPosY'][:, 0], y=(data['Y_PRED'][:, 2] + data['Y_PRED'][:, 1]) / np.sqrt(3), xlabel=name_EXO, ylabel=name_DNN,
-                  mode='Y',
-                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Y_' + epoch + '.pdf'))
-    plot_diagonal(x=np.sqrt(data['EVENT_INFO']['CCPosY'][:, 0] * data['EVENT_INFO']['CCPosY'][:, 0] + data['EVENT_INFO']['CCPosX'][:, 0]*data['EVENT_INFO']['CCPosX'][:, 0]),
-                  y=np.sqrt(4 / 3 * (data['Y_PRED'][:, 1] * data['Y_PRED'][:, 1] + data['Y_PRED'][:, 2] * data['Y_PRED'][:, 2] - data['Y_PRED'][:, 1] * data['Y_PRED'][:, 2])),
-                  xlabel=name_EXO, ylabel=name_DNN, mode='R',
-                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_R_' + epoch + '.pdf'))
+    if var_targets == 'energy':
+        data['Y_PRED'][:, 0] = denormalize(data['Y_PRED'][:, 0], 'energy')
 
-    plot_diagonal(x=data['EVENT_INFO']['CCCollectionTime'][:, 0], y=data['Y_PRED'][:, 3], xlabel=name_EXO, ylabel=name_DNN, mode='Time',
-                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Time_' + epoch + '.pdf'))
-    plot_diagonal(x=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), y=fromTimeToZ(data['Y_PRED'][:, 3]),
-                  xlabel=name_EXO, ylabel=name_DNN, mode='Z',
-                  fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Z_' + epoch + '.pdf'))
+        plot_diagonal(x=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], y=data['Y_PRED'][:, 0], xlabel=name_EXO,
+                      ylabel=name_DNN, mode='Energy',
+                      fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Energy_no_correction_' + epoch + '.pdf'))
+        plot_residual_histo(dTrue=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], dDNN=data['Y_PRED'][:, 0], dEXO=None,
+                            title='Energy', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None, limit=100,
+                            fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Energy_no_correction_' + epoch + '.pdf')
+        plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], dTrue=None,
+                      mode='Energy',
+                      fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Energy_no_correction_' + epoch + '.pdf'))
 
-    plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], dTrue=None,
-                  mode='Energy', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
-    plot_spectrum(dCNN=data['Y_PRED'][:, 1], dEXO=data['EVENT_INFO']['CCPosU'][:, 0], dTrue=None,
-                  mode='U', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_U_' + epoch + '.pdf'))
-    plot_spectrum(dCNN=data['Y_PRED'][:, 2], dEXO=data['EVENT_INFO']['CCPosV'][:, 0], dTrue=None,
-                  mode='V', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_V_' + epoch + '.pdf'))
-    plot_spectrum(dCNN=data['Y_PRED'][:, 3], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0], dTrue=None,
-                  mode='Time', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Time_' + epoch + '.pdf'))
-    plot_spectrum(dCNN=fromTimeToZ(data['Y_PRED'][:, 3]), dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]),
-                  dTrue=None, mode='Z',
-                  fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Z_' + epoch + '.pdf'))
+        plot_diagonal(x=data['EVENT_INFO']['CCPurityCorrectedEnergy'][:, 0], y=data['Y_PRED'][:, 0], xlabel=name_EXO,
+                      ylabel=name_DNN, mode='Energy',
+                      fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
+        plot_residual_histo(dTrue=data['EVENT_INFO']['CCPurityCorrectedEnergy'][:, 0], dDNN=data['Y_PRED'][:, 0], dEXO=None,
+                            title='Energy', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None, limit=100,
+                            fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Energy_' + epoch + '.pdf')
+        plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCPurityCorrectedEnergy'][:, 0], dTrue=None,
+                      mode='Energy',
+                      fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Energy_' + epoch + '.pdf'))
 
-    plot_residual_histo(dTrue=data['EVENT_INFO']['CCCorrectedEnergy'][:, 0], dDNN=data['Y_PRED'][:, 0], dEXO=None,
-                        title='Energy', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None, limit=100,
-                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Energy_' + epoch + '.pdf')
-    plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosU'][:, 0], dDNN=data['Y_PRED'][:, 1], dEXO=None,
-                        title='U', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
-                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_U_' + epoch + '.pdf')
-    plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosV'][:, 0], dDNN=data['Y_PRED'][:, 2], dEXO=None,
-                        title='V', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
-                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_V_' + epoch + '.pdf')
-    plot_residual_histo(dTrue=data['EVENT_INFO']['CCCollectionTime'][:, 0], dDNN=data['Y_PRED'][:, 3], dEXO=None,
-                        title='Time', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
-                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Time_' + epoch + '.pdf')
-    plot_residual_histo(dTrue=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), dDNN=fromTimeToZ(data['Y_PRED'][:, 3]),
-                        dEXO=None,
-                        title='Z', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
-                        fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Z_' + epoch + '.pdf')
 
+    if var_targets == 'U':
+        data['Y_PRED'][:, 0] = denormalize(data['Y_PRED'][:, 0], 'U')
+
+        plot_diagonal(x=data['EVENT_INFO']['CCPosU'][:, 0], y=data['Y_PRED'][:, 0], xlabel=name_EXO, ylabel=name_DNN, mode='U',
+                      fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_U_' + epoch + '.pdf'))
+        plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosU'][:, 0], dDNN=data['Y_PRED'][:, 0], dEXO=None,
+                            title='U', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                            fOUT=folderOUT + 'residual_' + sources + '_' + position + '_U_' + epoch + '.pdf')
+        plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCPosU'][:, 0], dTrue=None,
+                      mode='U', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_U_' + epoch + '.pdf'))
+
+
+
+    if var_targets == 'V':
+        data['Y_PRED'][:, 0] = denormalize(data['Y_PRED'][:, 0], 'V')
+
+        plot_diagonal(x=data['EVENT_INFO']['CCPosV'][:, 0], y=data['Y_PRED'][:, 0], xlabel=name_EXO, ylabel=name_DNN, mode='V',
+                      fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_V_' + epoch + '.pdf'))
+        plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosV'][:, 0], dDNN=data['Y_PRED'][:, 0], dEXO=None,
+                            title='V', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                            fOUT=folderOUT + 'residual_' + sources + '_' + position + '_V_' + epoch + '.pdf')
+        plot_spectrum(dCNN=data['Y_PRED'][:, 0], dEXO=data['EVENT_INFO']['CCPosV'][:, 0], dTrue=None,
+                      mode='V', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_V_' + epoch + '.pdf'))
+
+    if var_targets == 'Z':
+        data['Y_PRED'][:, 0] = denormalize(data['Y_PRED'][:, 0], 'Z')
+
+        plot_diagonal(x=data['EVENT_INFO']['CCPosZ'][:, 0], y=data['Y_PRED'][:, 0],
+                      xlabel=name_EXO, ylabel=name_DNN, mode='Z',
+                      fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Z_' + epoch + '.pdf'))
+        plot_spectrum(dCNN=data['Y_PRED'][:, 0],
+                      dEXO=data['EVENT_INFO']['CCPosZ'][:, 0],
+                      dTrue=None, mode='Z',
+                      fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Z_' + epoch + '.pdf'))
+        plot_residual_histo(dTrue=data['EVENT_INFO']['CCPosZ'][:, 0], dDNN=data['Y_PRED'][:, 0],
+                            dEXO=None,
+                            title='Z', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None, limit=100,
+                            fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Z_' + epoch + '.pdf')
+
+
+        # plot_diagonal(x=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), y=fromTimeToZ(data['Y_PRED'][:, 0]),
+        #               xlabel=name_EXO, ylabel=name_DNN, mode='Z',
+        #               fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Z_' + epoch + '.pdf'))
+        # plot_spectrum(dCNN=fromTimeToZ(data['Y_PRED'][:, 0]),
+        #               dEXO=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]),
+        #               dTrue=None, mode='Z',
+        #               fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Z_' + epoch + '.pdf'))
+        # plot_residual_histo(dTrue=fromTimeToZ(data['EVENT_INFO']['CCCollectionTime'][:, 0]), dDNN=fromTimeToZ(data['Y_PRED'][:, 0]),
+        #                     dEXO=None,
+        #                     title='Z', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+        #                     fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Z_' + epoch + '.pdf')
+
+
+
+    if var_targets == 'time':
+        plot_diagonal(x=data['EVENT_INFO']['CCCollectionTime'][:, 0], y=data['Y_PRED'][:, 3], xlabel=name_EXO, ylabel=name_DNN, mode='Time',
+                      fOUT=(folderOUT + 'prediction_' + sources + '_' + position + '_Time_' + epoch + '.pdf'))
+        plot_spectrum(dCNN=data['Y_PRED'][:, 3], dEXO=data['EVENT_INFO']['CCCollectionTime'][:, 0], dTrue=None,
+                      mode='Time', fOUT=(folderOUT + 'spectrum_' + sources + '_' + position + '_Time_' + epoch + '.pdf'))
+        plot_residual_histo(dTrue=data['EVENT_INFO']['CCCollectionTime'][:, 0], dDNN=data['Y_PRED'][:, 3], dEXO=None,
+                            title='Time', name_True=name_EXO, name_DNN=name_DNN, name_EXO=None,
+                            fOUT=folderOUT + 'residual_' + sources + '_' + position + '_Time_' + epoch + '.pdf')
 
 
     # plot_scatter_hist2d(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
@@ -270,18 +749,31 @@ def doCalibration(data_True, data_Recon):
 def fromTimeToZ(data):
     return -1.71 * data + 1949.89
 
-
+# # New:
 def denormalize(data, mode):
-    data /= 100
     if mode == 'energy':
-        data_denorm = (data / 1          * 2950) + 550
+        data_denorm = (data * 2950.)
     elif mode == 'U' or mode == 'V':
-        data_denorm = (data / 1          * 340) - 170
+        data_denorm = (data * 340.) - 170
     elif mode == 'time':
-        data_denorm = (data / 1          * 110) + 1030
+        data_denorm = (data * 110.) + 1030
     elif mode == 'Z':
-        data_denorm = (data / 1          * 190)
+        # data_denorm = (data / 1          * 190)
+        data_denorm = (data * 380.) - 190
     return data_denorm
+
+# # #  Old:
+# def denormalize(data, mode):
+#     data /= 100
+#     if mode == 'energy':
+#         data_denorm = (data / 2          * 2950) + 550
+#     elif mode == 'U' or mode == 'V':
+#         data_denorm = (data / 1          * 340) - 170
+#     elif mode == 'time':
+#         data_denorm = (data / 1          * 110) + 1030
+#     elif mode == 'Z':
+#         data_denorm = (data / 2          * 190)
+#     return data_denorm
 
 
 def fit_spectrum(data, peakpos, fit, name, color, isMC, peakfinder='max', zorder=3):
@@ -393,29 +885,54 @@ def plot_spectrum(dCNN, dEXO, dTrue, mode, fOUT):
         plt.step(bin_centres, hist_EXO, where='mid', color='firebrick', label='EXO', lw=1.1)
     plt.step(bin_centres, hist_DNN, where='mid', color='blue', label='DNN', lw=1.1)
 
-    plt.xlabel(mode)
-    plt.ylabel('Probability')
-    plt.legend(loc='best')
-    plt.gca().set_yscale('log')
+
+    #  Fit Gauss to Th228 Peak:
     if mode == 'Energy':
-        plt.xlim(xmin=550, xmax=2900)
-        plt.ylim(ymin=5.e-6, ymax=1.e-2)
+        peak = find_peak(hist=hist_True, bin_centres=bin_centres, peakpos=2614.5, peakfinder='max')
+        coeff = [hist_True[peak], bin_centres[peak], 50., -0.005]
+        low = np.digitize(coeff[1] - (5.5 * abs(coeff[2])), bin_centres)
+        up = np.digitize(coeff[1] + (3.0 * abs(coeff[2])), bin_centres)
+
+        from scipy.optimize import curve_fit
+        coeff_DNN, var_matrix_DNN = curve_fit(gaussErf, bin_centres[low:up], hist_DNN[low:up], p0=coeff)
+        coeff_EXO, var_matrix_EXO = curve_fit(gaussErf, bin_centres[low:up], hist_EXO[low:up], p0=coeff)
+
+        # print 'DNN:'
+        # print coeff_DNN
+        # print var_matrix_DNN
+        # print 'EXO:'
+        # print coeff_EXO
+        # print var_matrix_EXO
+        plt.plot(bin_centres, gauss_zero(bin_centres, *coeff_DNN[:3]), ls='--', color='blue', label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('DNN:', coeff_DNN[1], np.absolute(coeff_DNN[2])))
+        plt.plot(bin_centres, gauss_zero(bin_centres, *coeff_EXO[:3]), ls='--', color='firebrick', label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('EXO:', coeff_EXO[1], np.absolute(coeff_EXO[2])))
+
+    plt.xlabel(mode + ' [mm]')
+    plt.ylabel('Probability')
+    plt.legend(loc="best", prop={'size': 13})
+    # plt.gca().set_yscale('log')
+    if mode == 'Energy':
+        plt.gca().set_yscale('log')
+        plt.xlim(xmin=700, xmax=2700)
+        # plt.ylim(ymin=5.e-6, ymax=1.e-2)
+        plt.ylim(ymin=2.e-5, ymax=1.e-2)
+        plt.legend(loc='lower left', prop={'size': 10})
+        plt.xlabel('Energy [keV]')
     elif mode == 'Time':
         plt.xlim(xmin=1030, xmax=1140)
         plt.gca().set_yscale('linear')
     elif mode == 'Z':
-        plt.xlim(xmin=0, xmax=200)
+        plt.xlim(xmin=-200, xmax=200)
     elif mode in ['X', 'Y', 'U', 'V']:
         plt.xlim(xmin=-200, xmax=200)
         # plt.ylim(ymin=5.e-6, ymax=1.e-2)
     else: raise ValueError('wrong mode chosen')
-    plt.grid(True)
+    # plt.grid(True)
     plt.savefig(fOUT, bbox_inches='tight')
     plt.clf()
     plt.close()
 
 
-def plot_diagonal(x,y, xlabel, ylabel, mode, fOUT):
+def plot_diagonal(x, y, xlabel, ylabel, mode, fOUT):
     # Create figure
     dE = y - x
 
@@ -441,8 +958,7 @@ def plot_diagonal(x,y, xlabel, ylabel, mode, fOUT):
         shifts = [10, 20, 30, 40]
         shifts_res = [10, 20]
     elif mode in ['X', 'Y', 'Z', 'U', 'V']:
-        if mode == 'Z': lowE = 0
-        else: lowE = -200
+        lowE = -200
         upE = 200
         resE = 20
         gridsize = 100
@@ -524,38 +1040,308 @@ def plot_losses(folderOUT, history):
     return
 
 
-# histogram of the data
-def plot_residual_histo(dTrue, dDNN, dEXO, title, name_True, name_DNN, name_EXO, fOUT, limit=10):
+
+def plot_boxplot(dTrue, dTrue_masked, dEXO, dEXO_masked, dDNN, dDNN_masked, dTrue_masked_zeroed, dEXO_masked_zeroed, dDNN_masked_zeroed, title, name_DNN_masked, name_EXO_masked, fOUT, name_DNN='DNN', name_EXO='EXO'):
+    from matplotlib.gridspec import GridSpec
+    from matplotlib.font_manager import FontProperties
+# Drei geteilter PLOT:
+
+    # delDNN = dDNN - dTrue
+    # delDNN_masked = dDNN_masked - dTrue_masked
+    # delEXO = dEXO - dTrue
+    # delEXO_masked = dEXO_masked - dTrue_masked
+    # delDNN_zeroed = dDNN_masked_zeroed - dTrue_masked_zeroed
+    # delEXO_zeroed = dEXO_masked_zeroed - dTrue_masked_zeroed
+    #
+    # test_data = delDNN - delEXO
+    # test_data2 = delDNN_masked - delEXO_masked
+    #
+    # data = [delEXO, delDNN, delEXO_masked, delDNN_masked, delEXO_zeroed, delDNN_zeroed]
+    # labels = [name_EXO, name_DNN, name_EXO_masked, name_DNN_masked, 'EXO_onewire', 'DNN_onewire']
+    #
+    #
+    #
+    # positions = [1, 1.3, 2, 2.3, 3, 3.3]
+    # positions_violin = [1.15, 2.15, 3.15]
+    # limit = 5
+    # limit_max = 50
+    # whis = [2.5, 97.5]
+    #
+    #
+    # ax1 = plt.subplot2grid((1, 6), (0,0))
+    # plt.xlim(xmin=-limit_max, xmax=-limit)
+    # plt.boxplot([data[0], data[2], data[4]], notch=True, vert=False, whis=whis)
+    # plt.boxplot([data[1], data[3], data[5]], notch=True, positions=[positions[1], positions[3], positions[5]], vert=False, whis=whis)
+    #
+    #
+    # ax2 = plt.subplot2grid((1,6), (0,1), colspan=4, sharey=ax1)
+    # plt.setp(ax2.get_yticklabels(), visible=False)
+    # plt.axvline(x=0, ymin=0, ymax=1, color='black', alpha=0.3)
+    # plt.xlim(xmax=limit, xmin=-limit)
+    # plt.xlabel('Residual (pred - true) [mm]')
+    # plt.boxplot([data[0], data[2], data[4]], notch=True, vert=False, whis=whis)
+    # v1 = plt.violinplot([data[0], data[2], data[4]], positions=positions_violin, widths=0.9, showextrema=False, vert=False, points=2000)
+    #
+    # plt.boxplot([data[1], data[3], data[5]], notch=True, positions=[positions[1], positions[3], positions[5]], vert=False, whis=whis)
+    # v2 = plt.violinplot([data[1], data[3], data[5]], positions=positions_violin, widths=0.9, showextrema=False, vert=False, points=2000)
+    # for b in v1['bodies']:
+    #     m = np.mean(b.get_paths()[0].vertices[:, 1])
+    #     b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], -np.inf, m)
+    # for b in v2['bodies']:
+    #     m = np.mean(b.get_paths()[0].vertices[:, 1])
+    #     b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], m, np.inf)
+    #
+    #
+    # ax3 = plt.subplot2grid((1, 6), (0, 5), sharey=ax1)
+    # plt.setp(ax3.get_yticklabels(), visible=False)
+    # plt.xlim(xmax=limit_max, xmin=limit)
+    # plt.boxplot([data[0], data[2], data[4]], notch=True, vert=False, whis=whis)
+    # plt.boxplot([data[1], data[3], data[5]], notch=True, positions=[positions[1], positions[3], positions[5]], vert=False, whis=whis)
+    #
+    #
+    # plt.subplots_adjust(wspace=0)
+    #
+    # ax1.set_yticks(positions)
+    # ax1.set_yticklabels(labels)
+    # ax1.set_ylim(0.6, 3.7)
+    #
+    # # plt.legend(loc="best", prop={'size': 13})
+    # # plt.xlim(xmin=-limit, xmax=limit)
+    # # plt.ylim(ymin=-20, ymax=20)
+    # # plt.yscale('symlog', basey=5)
+    # plt.savefig(fOUT, bbox_inches='tight')
+    # plt.clf()
+    # plt.close()
+
+
     delDNN = dDNN - dTrue
-    if dEXO is not None:
-        delEXO = dEXO - dTrue
+    delDNN_masked = dDNN_masked - dTrue_masked
+    delEXO = dEXO - dTrue
+    delEXO_masked = dEXO_masked - dTrue_masked
+    delDNN_zeroed = dDNN_masked_zeroed - dTrue_masked_zeroed
+    delEXO_zeroed = dEXO_masked_zeroed - dTrue_masked_zeroed
 
-    bins = 200
-    if dEXO is not None:
-        hist_delEXO, bin_edges, _ = plt.hist(delEXO, bins=bins, range=(-limit, limit), density=True, label=name_EXO, facecolor='red', alpha=0.6)
-    hist_delDNN, bin_edges, _ = plt.hist(delDNN, bins=bins, range=(-limit, limit), density=True, label=name_DNN, facecolor='blue', alpha=0.6)
-    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+    data = [delEXO, delDNN, delEXO_masked, delDNN_masked, delEXO_zeroed, delDNN_zeroed]
+    labels = ['EXO', 'DNN', 'EXO', 'DNN', 'EXO', 'DNN']
 
-    # fitDNN = mlab.normpdf( bin_centres, np.mean(delDNN), np.std(delDNN))
-    # fitEXO = mlab.normpdf( bin_centres, np.mean(delEXO[dEXO>-800]), np.std(delEXO[dEXO>-800]))
-    # plt.plot(bin_centres, fitEXO, 'b--', linewidth=1.5, c='red')
-    # plt.plot(bin_centres, fitDNN, 'b--', linewidth=1.5, c='blue')
+    font = FontProperties()
+    font.set_family('serif')
 
-    plt.title(title)
-    plt.xlabel('Residual (xxx - %s)' % (name_True))
-    plt.ylabel('Probability')
-    plt.legend(loc="best")
-    plt.xlim(xmin=-limit, xmax=limit)
-    # plt.ylim(ymin=0.0, ymax=0.1)
-    plt.grid(True)
+
+    positions = [1, 1.3, 2, 2.3, 3, 3.3]
+    positions_violin = [1.15, 2.15, 3.15]
+    limit = 5
+    limit_max = 50
+    whis = [2.5, 97.5]
+
+    plt.text(-limit + 0.5, 1.15, 'a)', fontproperties=font)
+    plt.text(-limit + 0.5, 2.15, 'b)', fontproperties=font)
+    plt.text(-limit + 0.5, 3.15, 'c)', fontproperties=font)
+
+
+    plt.axvline(x=0, ymin=0, ymax=1, color='black', alpha=0.3)
+    plt.xlim(xmax=limit, xmin=-limit)
+    plt.xlabel('Residual (pred - true) [mm]', fontproperties = font)
+    plt.boxplot([data[0], data[2], data[4]], notch=True, vert=False, whis=whis, showfliers=False)
+    v1 = plt.violinplot([data[0], data[2], data[4]], positions=positions_violin, widths=0.9, showextrema=False, vert=False, points=20000, bw_method=0.03)
+
+    plt.boxplot([data[1], data[3], data[5]], notch=True, positions=[positions[1], positions[3], positions[5]], vert=False, whis=whis, showfliers=False)
+    v2 = plt.violinplot([data[1], data[3], data[5]], positions=positions_violin, widths=0.9, showextrema=False, vert=False, points=20000, bw_method=0.03)
+
+    # print v2
+
+    print
+    print v1['bodies'][0].get_facecolor()
+    print v2['bodies'][0].get_facecolor()
+
+    for b in v1['bodies']:
+        m = np.mean(b.get_paths()[0].vertices[:, 1])
+        b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], -np.inf, m)
+    for b in v2['bodies']:
+        m = np.mean(b.get_paths()[0].vertices[:, 1])
+        b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], m, np.inf)
+
+    plt.yticks(positions, labels, fontproperties=font)
+    # plt.set_yticklabels(labels)
+    plt.ylim([0.6, 3.7])
+    plt.xticks(fontproperties=font)
+
+    # plt.legend(loc="best", prop={'size': 13})
+    # plt.xlim(xmin=-limit, xmax=limit)
+    # plt.ylim(ymin=-20, ymax=20)
+    # plt.yscale('symlog', basey=5)
     plt.savefig(fOUT, bbox_inches='tight')
     plt.clf()
     plt.close()
+    return
 
-def plot_scatter(E_x, E_y, name_x, name_y, fOUT):
+
+def plot_residual_correlation(dTrue, dDNN, dEXO, mode, fOUT, limit=10):
+    from matplotlib.ticker import NullFormatter
+    from matplotlib.font_manager import FontProperties
+    from scipy.stats import pearsonr
+
+    font = FontProperties()
+    font.set_family('serif')
+    # font.set_variant(variant)
+
+    color = 'viridis'
+
+    cm = plt.cm.get_cmap(color)
+
+    delDNN = dDNN - dTrue
+    delEXO = dEXO - dTrue
+
+    print
+    print 'Correlation coefficient (', mode, '): \n', pearsonr(delDNN, delEXO)
+
+    nullfmt = NullFormatter()  # no labels
+
+    # definitions for the axes
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+    bottom_h = left_h = left + width + 0.02
+
+    rect_scatter = [left, bottom, width, height]
+    rect_histx = [left, bottom_h, width, 0.2]
+    rect_histy = [left_h, bottom, 0.2, height]
+    # rect_legend = [left_h, bottom_h, 0.2, 0.2]
+
+    # start with a rectangular Figure
+    plt.figure(1, figsize=(8, 8))
+
+    axScatter = plt.axes(rect_scatter)
+    if mode == 'U' or mode == 'V' or mode == 'Z':
+        plt.xlabel('Residual EXO [mm]', fontproperties=font)
+        plt.ylabel('Residual DNN [mm]', fontproperties=font)
+    if mode == 'energy':
+        plt.xlabel('Residual EXO [keV]', fontproperties=font)
+        plt.ylabel('Residual DNN [keV]', fontproperties=font)
+
+    axHistx = plt.axes(rect_histx)
+    axHisty = plt.axes(rect_histy)
+    axHisty.set_xlabel('Counts', fontproperties=font)
+    axHistx.set_ylabel('Counts', fontproperties=font)
+    # axLegend = plt.axes(rect_legend)
+
+    mask_limit_EXO = np.absolute(delEXO) < limit
+    mask_limit_DNN = np.absolute(delDNN) < limit
+    mask_limit = np.logical_and(mask_limit_DNN, mask_limit_EXO)
+
+    axHistx.text(0.03, 0.9, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delEXO[mask_limit_EXO]), np.std(delEXO[mask_limit_EXO])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='left',
+     verticalalignment='top', transform=axHistx.transAxes)
+    axHisty.text(0.5, 0.97, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delDNN[mask_limit_DNN]), np.std(delDNN[mask_limit_DNN])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='center',
+     verticalalignment='top', transform=axHisty.transAxes)
+
+    # no labels
+    axHistx.xaxis.set_major_formatter(nullfmt)
+    axHisty.yaxis.set_major_formatter(nullfmt)
+
+    binwidth = 0.15
+    binwidth = 100 / (2 * limit)
+
+    lim = limit
+    gridsize = 50
+
+    # the scatter plot:
+    axScatter.hexbin(delEXO[mask_limit], delDNN[mask_limit], gridsize=gridsize, mincnt=1,  # norm=colors.Normalize(),
+           cmap=plt.get_cmap('viridis'), linewidths=0.1, bins='log')
+
+
+    axScatter.set_xlim((-lim, lim))
+    axScatter.set_ylim((-lim, lim))
+
+    if mode == 'energy':
+        axScatter.set_xlim((-lim, 100))
+        axScatter.set_ylim((-lim, 100))
+
+    # bins = np.arange(-lim, lim, binwidth)
+    bins = 400
+
+    n_x, bins_x, patches_x = axHistx.hist(delEXO[mask_limit_EXO], bins=bins)
+    n_y, bins_y, patches_y = axHisty.hist(delDNN[mask_limit_DNN], bins=bins, orientation='horizontal')
+
+    axHistx.set_xlim(axScatter.get_xlim())
+    axHisty.set_ylim(axScatter.get_ylim())
+
+    plt.xticks(fontproperties=font)
+    plt.yticks(fontproperties=font)
+
+    plt.savefig(fOUT, bbox_inches='tight')
+    plt.clf()
+    plt.close()
+    return
+
+
+# histogram of the data
+def plot_residual_histo(dTrue, dDNN, dEXO, title, name_True, name_DNN, name_EXO, fOUT, limit=10):
+
+    # print dTrue.shape
+    # print dDNN.shape
+    # print dEXO.shape
+
+    delDNN = dDNN - dTrue
+    if dEXO is not None:
+
+        delEXO = dEXO - dTrue
+        mask_range_EXO = [np.absolute(delEXO) < limit]
+        delEXO = delEXO[mask_range_EXO]
+
+    mask_range_DNN = [np.absolute(delDNN) < limit]
+    delDNN = delDNN[mask_range_DNN]
+
+    bins = 400
+    if limit == 100:
+
+        if dEXO is not None:
+            hist_delEXO, bin_edges, _ = plt.hist(delEXO, bins=bins, range=(-limit, limit), density=False, facecolor='red', alpha=0.6, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('EXO:', np.mean(delEXO), np.std(delEXO)))
+        hist_delDNN, bin_edges, _ = plt.hist(delDNN, bins=bins, range=(-limit, limit), density=False, facecolor='blue', alpha=0.6, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('DNN:', np.mean(delDNN), np.std(delDNN)))
+
+    else:
+        bins = 200
+        if dEXO is not None:
+            hist_delEXO, bin_edges, _ = plt.hist(delEXO, bins=bins, range=(-limit, limit), density=True, facecolor='red',
+                                                 alpha=0.6, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % (
+                'EXO:', np.mean(delEXO), np.std(delEXO)))
+        hist_delDNN, bin_edges, _ = plt.hist(delDNN, bins=bins, range=(-limit, limit), density=True, facecolor='blue',
+                                         alpha=0.6, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % (
+            'DNN:', np.mean(delDNN), np.std(delDNN)))
+
+    #   Gauss Fit
+    # bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+    # from scipy.optimize import curve_fit
+    # coeff_DNN, var_matrix_DNN = curve_fit(gauss_zero, bin_centres, hist_delDNN)
+    # coeff_EXO, var_matrix_EXO = curve_fit(gauss_zero, bin_centres, hist_delEXO)
+    #
+    # print 'DNN:'
+    # print coeff_DNN
+    # print var_matrix_DNN
+    # print 'EXO:'
+    # print coeff_EXO
+    # print var_matrix_EXO
+    # plt.plot(bin_centres, gauss_zero(bin_centres, *coeff_DNN), ls='--', color='blue', label=r'$\sigma_{DNN}$ = %.2f' % coeff_DNN[2])
+    # plt.plot(bin_centres, gauss_zero(bin_centres, *coeff_EXO), ls='--', color='red', label=r'$\sigma_{EXO}$ = %.2f' % coeff_EXO[2])
+
+    plt.title(title)
+    plt.xlabel('Residual (prediction - %s)' % (name_True))
+    plt.ylabel('Probability')
+    if limit == 100:
+        plt.gca().set_yscale('log')
+
+    plt.legend(loc="best", prop={'size': 13})
+    plt.xlim(xmin=-limit, xmax=limit)
+    # plt.ylim(ymin=0.0, ymax=0.1)
+    # plt.grid(True)
+    plt.savefig(fOUT, bbox_inches='tight')
+    plt.clf()
+    plt.close()
+    return
+
+
+def plot_scatter(E_x, E_y, name_x, name_y, fOUT, alpha=1):
     dE = E_x - E_y
-    diag = np.arange(min(E_x),max(E_x))
-    plt.scatter(E_x, E_y, label='%s\n$\mu=%.1f, \sigma=%.1f$'%('training set', np.mean(dE), np.std(dE)))
+    diag = np.arange(min(E_x), max(E_x)+1)
+    plt.scatter(E_x, E_y, label='%s\n$\mu=%.1f, \sigma=%.1f$'%('training set', np.mean(dE), np.std(dE)), alpha=alpha)
     plt.plot(diag, diag, 'k--')
     plt.legend(loc="best")
     plt.xlabel('%s' % (name_x))
@@ -567,6 +1353,129 @@ def plot_scatter(E_x, E_y, name_x, name_y, fOUT):
     plt.clf()
     plt.close()
     return
+
+
+def plot_hexbin(E_x, E_y, DNN, EXO, name_x, name_y, fOUT):
+    xmin = E_x.min()-5
+    xmax = E_x.max()+5
+    ymin = E_y.min()-5
+    ymax = E_y.max()+5
+
+    fig, axes = plt.subplots(ncols=2)#, figsize=(7,3))
+
+    num_bins = 10
+
+    # fig.subplots_adjust(hspace=0.5, left=0.07, right=0.93)
+    ax = axes[0]
+    im = ax.hexbin(E_x, E_y, C=DNN, cmap='RdBu_r', linewidths=0.1, gridsize=num_bins, norm=colors.SymLogNorm(linthresh=0.03, linscale=0.03))
+
+    # axScatter.hexbin(delEXO[mask_limit], delDNN[mask_limit], gridsize=gridsize, mincnt=1,  # norm=colors.Normalize(),
+    #        cmap=plt.get_cmap('viridis'), linewidths=0.1, bins='log')
+
+    ax = axes[1]
+    im = ax.hexbin(E_x, E_y, C=EXO, cmap='RdBu_r', linewidths=0.1, gridsize=bins)
+    ax.axis([xmin, xmax, ymin, ymax])
+    # ax.set_title("Hexagon binning")
+    cb = fig.colorbar(im, ax=ax)
+    cb.set_label('energy residual')
+
+
+
+    # hb = plt.hexbin(E_x, E_y, C=E_z, mincnt=1, cmap='viridis')
+    # plt.plot(diag, diag, 'k--')
+    # plt.legend(loc="best")
+    axes[0].set_xlabel('%s' % (name_x))
+    axes[0].set_ylabel('%s' % (name_y))
+    # plt.xlim(xmin=600, xmax=3300)
+    # plt.ylim(ymin=600, ymax=3300)
+    # plt.grid(True)
+
+    # cb = plt.colorbar(hb, ax=ax)
+    # cb.set_label('counts')
+
+    plt.savefig(fOUT, bbox_inches='tight')
+    plt.clf()
+    plt.close()
+    return
+
+
+def plot_hist2D(E_x, E_y, name_x, name_y, fOUT):
+    dE = E_x - E_y
+    diag = np.arange(min(E_x),max(E_x))
+    plt.hist2d(E_x, E_y, cmin=1)
+    # plt.plot(diag, diag, 'k--')
+    plt.legend(loc="best")
+    plt.xlabel('%s' % (name_x))
+    plt.ylabel('%s' % (name_y))
+    # plt.xlim(xmin=600, xmax=3300)
+    # plt.ylim(ymin=600, ymax=3300)
+    # plt.grid(True)
+    plt.savefig(fOUT, bbox_inches='tight')
+    plt.clf()
+    plt.close()
+    return
+
+
+def  plot_scatter_MS_CR(y_true_cluster, y_true_e, y_pred_cluster, y_pred_e, number_cluster, name_x, name_y, fOUT):
+    #
+    diag = np.arange(min(y_true_e), max(y_true_e))
+    mask_true = [y_true_cluster >= number_cluster]
+
+    # print '>>>>>>>'
+    # print y_true_cluster.shape
+    # print len(mask_true)
+
+    mask_pred = [y_pred_cluster >= number_cluster]
+    mask_both = np.logical_and(mask_pred, mask_true)
+    mask_both_not = np.logical_and(np.logical_not(mask_pred), np.logical_not(mask_true))
+
+    # print number_cluster
+    # print y_true_cluster
+    # print y_pred_cluster
+    #
+    # print mask_true
+    # print mask_pred
+    # print '--'
+    mask_true = np.logical_and(mask_true, np.logical_not(mask_both))
+    mask_pred = np.logical_and(mask_pred, np.logical_not(mask_both))
+
+
+    #
+    # print mask_true
+    # print mask_pred
+    # print mask_both
+    # print mask_both_not
+
+    dE = y_true_e - y_pred_e
+
+    mask_both, mask_pred, mask_true, mask_both_not = np.reshape(mask_both, (-1,)), np.reshape(mask_pred, (-1,)), np.reshape(mask_true, (-1,)), np.reshape(mask_both_not, (-1,))
+
+    # print mask_both.shape
+    # print y_true_cluster.shape
+    # print y_true_e.shape
+    # print y_pred_e.shape
+
+    dE = dE[mask_both]
+    # print '>>>>>'
+    # print mask_both.shape
+    # print y_true_e.shape
+
+    plt.scatter(y_true_e[mask_both], y_pred_e[mask_both], color='green', label='%s\n$\mu=%.1f, \sigma=%.1f$'%('training set', np.mean(dE), np.std(dE)))
+    plt.scatter(y_true_e[mask_true], y_pred_e[mask_true], alpha=0.3, color='red', label='true-not_pred') # label='%s\n$\mu=%.1f, \sigma=%.1f$' % ('training set', np.mean(dE), np.std(dE)))
+    plt.scatter(y_true_e[mask_pred], y_pred_e[mask_pred], alpha=0.3, color='maroon', label='not_true-pred') #label='%s\n$\mu=%.1f, \sigma=%.1f$' % ('training set', np.mean(dE), np.std(dE)), alpha=0.5, color='red')
+    plt.scatter(y_true_e[mask_both_not], y_pred_e[mask_both_not], alpha=0.3, color='blue', label='not_true-not_pred')
+    plt.plot(diag, diag, 'k--')
+    plt.legend(loc="best", prop={'size': 13})
+    plt.xlabel('%s' % (name_x))
+    plt.ylabel('%s' % (name_y))
+    # plt.xlim(xmin=600, xmax=3300)
+    # plt.ylim(ymin=600, ymax=3300)
+    plt.grid(True)
+    plt.savefig(fOUT, bbox_inches='tight')
+    plt.clf()
+    plt.close()
+    return
+
 
 
 # scatter (Hist2D)

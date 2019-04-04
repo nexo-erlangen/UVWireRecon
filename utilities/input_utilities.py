@@ -41,22 +41,24 @@ def parseInput():
     parser.add_argument('-m', '--model', dest='folderMODEL', type=str, default='Dummy', help='folderMODEL Path')
     parser.add_argument('--inputs', dest='inputImages', type=str, default='UV', choices=['U', 'V', 'UV'], help='Input images for Neural network')
     parser.add_argument('-t', '--targets', type=str, dest='var_targets', default='energy_and_UV_position', help='Targets to train the network against')
-    parser.add_argument('-a', '--arch', type=str, dest='cnn_arch', default='DCNN', choices=['DCNN', 'ResNet', 'Inception', 'Autoencoder'], help='Choose network architecture')
+    parser.add_argument('-a', '--arch', type=str, dest='cnn_arch', default='DCNN', choices=['DCNN', 'ResNet', 'Inception', 'Autoencoder', 'ConvLSTM'], help='Choose network architecture')
     parser.add_argument('-g', '--gpu', type=int, dest='num_gpu', default=1, choices=[1, 2, 3, 4], help='Number of GPUs')
     parser.add_argument('-e', '--epoch', type=int, dest='num_epoch', default=1, help='nb Epochs')
     parser.add_argument('-b', '--batch', type=int, dest='batchsize', default=16, help='Batch Size')
     parser.add_argument('-w', '--weights', dest='num_weights', type=int, default=0, help='Load weights from Epoch')
-    parser.add_argument('-s', '--source', dest='sources', default=['GammaExp'], nargs="*", choices=['GammaExp', 'Th228', 'Co60', 'Ra226'], help='sources for training/validation')
+    parser.add_argument('-s', '--source', dest='sources', default=['GammaExp'], nargs="*", choices=['GammaExp', 'Th228', 'Co60', 'Ra226', 'wirecheck', 'bb0n'], help='sources for training/validation')
+    #                                                                                                   wirecheck = link to tobis Allvessel data with numUwire info
     parser.add_argument('-p', '--position', dest='position', default=['Uni'], nargs='*', choices=['Uni', 'S2', 'S5', 'S8'], help='source position')
     parser.add_argument('-v', '--valid', dest='mode', default='train', choices=['train', 'mc', 'data'], help='mode of operation (train/eval (mc/data))')
     parser.add_argument('--events', dest='events', default=2000, type=int, help='number of validation events')
-    parser.add_argument('--multi', dest='multiplicity', default='SS', choices=['SS', 'SS+MS'], help='Choose Event Multiplicity (SS / SS+MS)')
+    parser.add_argument('--multi', dest='multiplicity', default='SS+MS', choices=['SS', 'SS+MS'], help='Choose Event Multiplicity (SS / SS+MS)')
     parser.add_argument('--resume', dest='resume', action='store_true', help='Resume Training')
     parser.add_argument('--test', dest='test', action='store_true', help='Only reduced data')
     parser.add_argument('--new', dest='new', action='store_true', help='Process new validation events')
     parser.add_argument('--learningrate', dest='learningRate', default=0.001, help='Learning Rate of the network')
     parser.add_argument('--note', dest='note', type=str, default='', nargs="*", help='note to be added to info.txt')
     args, unknown = parser.parse_known_args()
+
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -71,11 +73,12 @@ def parseInput():
     args.endings = {}
     for source in args.sources:
         for pos in args.position:
-            args.endings[source+pos+mode+args.multiplicity] = source + '_WFs_' + pos + '_' + mode + '_' + args.multiplicity
+            # args.endings[source+pos+mode+args.multiplicity] = source + '_WFs_' + pos + '_' + mode + '_' + 'SS+MS'  #args.multiplicity
+            args.endings[source + pos + mode + args.multiplicity] = source + '_WFs_' + pos + '_' + mode + '_' + args.multiplicity
 
     endings_to_pop = []
     for ending in args.endings:
-        folderIN[ending] = os.path.join(os.path.join(args.folderIN,''), args.endings[ending])
+        folderIN[ending] = os.path.join(os.path.join(args.folderIN, ''), args.endings[ending])
         try:
             if not os.path.isdir(folderIN[ending]): raise OSError
             print 'Input  Folder:\t\t', folderIN[ending]
@@ -84,8 +87,8 @@ def parseInput():
     for ending in endings_to_pop:
         args.endings.pop(ending)
 
-    args.folderOUT = os.path.join(os.path.join(args.folderRUNS,args.folderOUT),'')
-    args.folderMODEL = os.path.join(os.path.join(os.path.join(args.folderRUNS,''),args.folderMODEL),'')
+    args.folderOUT = os.path.join(os.path.join(args.folderRUNS, args.folderOUT), '')
+    args.folderMODEL = os.path.join(os.path.join(os.path.join(args.folderRUNS, ''), args.folderMODEL), '')
     args.folderIN = folderIN
 
     adjustPermissions(args.folderOUT)
@@ -96,8 +99,8 @@ def parseInput():
         args.num_weights = 0
     if not os.path.exists(args.folderOUT+'models'): os.makedirs(args.folderOUT+'models')
 
-    if args.mode == 'data':
-        args.var_targets = None
+    # if args.mode == 'data':
+    #     args.var_targets = None
 
     print 'Output Folder:\t\t'  , args.folderOUT
     if args.resume: print 'Model Folder:\t\t', args.folderMODEL
@@ -132,6 +135,7 @@ def splitFiles(args, mode, frac_train, frac_val):
             splitted_files= {'train': {}, 'val': {}, 'test': {}}
             print "\tSource\t\tTotal\tTrain\tValid\tTest"
             for ending in args.endings:
+
                 if (frac_train[ending] + frac_val[ending]) > 1.0: raise ValueError('check file fractions!')
                 files[ending] = [os.path.join(args.folderIN[ending], f) for f in os.listdir(args.folderIN[ending]) if
                                  os.path.isfile(os.path.join(args.folderIN[ending], f))]
