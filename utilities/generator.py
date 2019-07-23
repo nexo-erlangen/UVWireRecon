@@ -74,7 +74,7 @@ def generate_batches_from_files(files, batchsize, inputImages, multiplicity, cla
                     xs_i = f['wfs'][ i : i + batchsize, wireindex]
 
                     #  pad to larger waveforms
-                    xs_i = np.pad(xs_i, ((0, 0), (0, 0), (0, 0), (0, 50), (0, 0)), 'constant', constant_values=0)
+                    # xs_i = np.pad(xs_i, ((0, 0), (0, 0), (0, 0), (0, 50), (0, 0)), 'constant', constant_values=0)
 
                     xs_i = np.swapaxes(xs_i, 0, 1)
                     xs_i = np.swapaxes(xs_i, 2, 3)
@@ -411,15 +411,15 @@ def encode_targets(y_dict, batchsize, multiplicity, class_type=None, histo=[], m
 
         elif class_type == 'energy_and_UV_position':
             train_y = np.zeros((batchsize, 4), dtype='float32')
-            train_y[:, 0] = normalize(y_dict['MCEnergy'][:, 0], 'energy')  # energy
-            train_y[:, 1] = normalize(y_dict['MCPosU'][:, 0], 'U')  # dir_u
-            train_y[:, 2] = normalize(y_dict['MCPosV'][:, 0], 'V')  # dir_v
-            train_y[:, 3] = normalize(y_dict['MCPosZ'][:, 0], 'Z')  # dir_z
+            # train_y[:, 0] = normalize(y_dict['MCEnergy'][:, 0], 'energy')  # energy
+            # train_y[:, 1] = normalize(y_dict['MCPosU'][:, 0], 'U')  # dir_u
+            # train_y[:, 2] = normalize(y_dict['MCPosV'][:, 0], 'V')  # dir_v
+            # train_y[:, 3] = normalize(y_dict['MCPosZ'][:, 0], 'Z')  # dir_z
 
-            # train_y[:, 0] = normalize(y_dict['MCEnergy'][:], 'energy')  # energy
-            # train_y[:, 1] = normalize(y_dict['MCPosU'][:], 'U')  # dir_u
-            # train_y[:, 2] = normalize(y_dict['MCPosV'][:], 'V')  # dir_v
-            # train_y[:, 3] = normalize(y_dict['MCPosZ'][:], 'Z')  # dir_z
+            train_y[:, 0] = normalize(y_dict['MCEnergy'][:], 'energy')  # energy
+            train_y[:, 1] = normalize(y_dict['MCPosU'][:], 'U')  # dir_u
+            train_y[:, 2] = normalize(y_dict['MCPosV'][:], 'V')  # dir_v
+            train_y[:, 3] = normalize(y_dict['MCPosZ'][:], 'Z')  # dir_z
 
             # train_y[:, 0] = energy
             # train_y[:, 1] = u

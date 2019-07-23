@@ -75,6 +75,7 @@ def parseInput():
         for pos in args.position:
             # args.endings[source+pos+mode+args.multiplicity] = source + '_WFs_' + pos + '_' + mode + '_' + 'SS+MS'  #args.multiplicity
             args.endings[source + pos + mode + args.multiplicity] = source + '_WFs_' + pos + '_' + mode + '_' + args.multiplicity
+            # args.endings[source + pos + mode + args.multiplicity] = source + '_WFs_' + pos + '_' + mode + '_own_SS_definition'
 
     endings_to_pop = []
     for ending in args.endings:

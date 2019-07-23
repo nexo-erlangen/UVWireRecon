@@ -11,6 +11,7 @@ from sys import path
 path.append('/home/hpc/capm/mppi053h/UVWireRecon')
 from math import atan2,degrees
 from plot_traininghistory import *
+import matplotlib.colors as colors
 
 # ----------------------------------------------------------
 # Plots
@@ -748,7 +749,6 @@ def doCalibration(data_True, data_Recon):
 
 def fromTimeToZ(data):
     return -1.71 * data + 1949.89
-
 # # New:
 def denormalize(data, mode):
     if mode == 'energy':
@@ -870,148 +870,356 @@ def calibrate_spectrum(data, name, peakpos, fOUT, isMC, peakfinder):
     return CalibrationFactor
 
 
-def plot_spectrum(dCNN, dEXO, dTrue, mode, fOUT):
-    hist_DNN, bin_edges = np.histogram(dCNN, bins=1200, range=(-6000, 6000), density=True)
-    if dEXO is not None:
-        hist_EXO, bin_edges = np.histogram(dEXO, bins=1200, range=(-6000, 6000), density=True)
-    hist_True, bin_edges = np.histogram(dTrue, bins=1200, range=(-6000, 6000), density=True)
-    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+def plot_spectrum(dCNN, dEXO, dTrue, mode, fOUT, mode2='mc'):
+    from matplotlib.gridspec import GridSpec
 
-    # plt.fill_between(bin_centres, 0.0, hist_True, facecolor='black', alpha=0.3, interpolate=True)
-    # plt.plot(bin_centres, hist_True, color='k', label='MC', lw=0.5)
-    plt.hist(dTrue, bins=1200, range=(-6000, 6000), density=True, histtype='stepfilled', align='mid', color='k', alpha=0.3, lw=0.0)
-    plt.step(bin_centres, hist_True, where='mid', color='k', label='MC', lw=0.7)
-    if dEXO is not None:
-        plt.step(bin_centres, hist_EXO, where='mid', color='firebrick', label='EXO', lw=1.1)
-    plt.step(bin_centres, hist_DNN, where='mid', color='blue', label='DNN', lw=1.1)
+    if mode2 == 'real':
+       bins = 1200
+       # bins = 2400
+       bins = 600
+       hist_DNN, bin_edges = np.histogram(dCNN, bins=bins, range=(-6000, 6000), density=True)
+       if dEXO is not None:
+           hist_EXO, bin_edges = np.histogram(dEXO, bins=bins, range=(-6000, 6000), density=True)
+       hist_True, bin_edges = np.histogram(dTrue, bins=bins, range=(-6000, 6000), density=True)
+       bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
 
+       coeff_EXO = [0, 2614.53]
+       coeff_DNN = [0, 2614.53]
 
-    #  Fit Gauss to Th228 Peak:
-    if mode == 'Energy':
-        peak = find_peak(hist=hist_True, bin_centres=bin_centres, peakpos=2614.5, peakfinder='max')
-        coeff = [hist_True[peak], bin_centres[peak], 50., -0.005]
-        low = np.digitize(coeff[1] - (5.5 * abs(coeff[2])), bin_centres)
-        up = np.digitize(coeff[1] + (3.0 * abs(coeff[2])), bin_centres)
+       #  Fit Gauss to Th228 Peak:
+       if mode == 'Energy':
+           peak = find_peak(hist=hist_True, bin_centres=bin_centres, peakpos=2614.5, peakfinder='max')
+           coeff = [hist_True[peak], bin_centres[peak], 50., -0.005]
+           low = np.digitize(coeff[1] - (5.5 * abs(coeff[2])), bin_centres)
+           up = np.digitize(coeff[1] + (3.0 * abs(coeff[2])), bin_centres)
 
-        from scipy.optimize import curve_fit
-        coeff_DNN, var_matrix_DNN = curve_fit(gaussErf, bin_centres[low:up], hist_DNN[low:up], p0=coeff)
-        coeff_EXO, var_matrix_EXO = curve_fit(gaussErf, bin_centres[low:up], hist_EXO[low:up], p0=coeff)
-
-        # print 'DNN:'
-        # print coeff_DNN
-        # print var_matrix_DNN
-        # print 'EXO:'
-        # print coeff_EXO
-        # print var_matrix_EXO
-        plt.plot(bin_centres, gauss_zero(bin_centres, *coeff_DNN[:3]), ls='--', color='blue', label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('DNN:', coeff_DNN[1], np.absolute(coeff_DNN[2])))
-        plt.plot(bin_centres, gauss_zero(bin_centres, *coeff_EXO[:3]), ls='--', color='firebrick', label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('EXO:', coeff_EXO[1], np.absolute(coeff_EXO[2])))
-
-    plt.xlabel(mode + ' [mm]')
-    plt.ylabel('Probability')
-    plt.legend(loc="best", prop={'size': 13})
-    # plt.gca().set_yscale('log')
-    if mode == 'Energy':
-        plt.gca().set_yscale('log')
-        plt.xlim(xmin=700, xmax=2700)
-        # plt.ylim(ymin=5.e-6, ymax=1.e-2)
-        plt.ylim(ymin=2.e-5, ymax=1.e-2)
-        plt.legend(loc='lower left', prop={'size': 10})
-        plt.xlabel('Energy [keV]')
-    elif mode == 'Time':
-        plt.xlim(xmin=1030, xmax=1140)
-        plt.gca().set_yscale('linear')
-    elif mode == 'Z':
-        plt.xlim(xmin=-200, xmax=200)
-    elif mode in ['X', 'Y', 'U', 'V']:
-        plt.xlim(xmin=-200, xmax=200)
-        # plt.ylim(ymin=5.e-6, ymax=1.e-2)
-    else: raise ValueError('wrong mode chosen')
-    # plt.grid(True)
-    plt.savefig(fOUT, bbox_inches='tight')
-    plt.clf()
-    plt.close()
+           from scipy.optimize import curve_fit
+           coeff_DNN, var_matrix_DNN = curve_fit(gaussErf, bin_centres[low:up], hist_DNN[low:up], p0=coeff)
+           coeff_EXO, var_matrix_EXO = curve_fit(gaussErf, bin_centres[low:up], hist_EXO[low:up], p0=coeff)
 
 
-def plot_diagonal(x, y, xlabel, ylabel, mode, fOUT):
-    # Create figure
-    dE = y - x
+           plt.plot(bin_centres[low+7:up]*2614.53/coeff_DNN[1], gaussErf(bin_centres[low+7:up], *coeff_DNN), ls='--', color=(0,0.2,0.4),     #color='blue',
+                    label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % ('DNN:', coeff_DNN[1]*2614.53/coeff_DNN[1], np.absolute(coeff_DNN[2]*2614.53/coeff_DNN[1])))
+           plt.plot(bin_centres[low+7:up]*2614.53/coeff_EXO[1], gaussErf(bin_centres[low+7:up], *coeff_EXO), ls='--', color=(1., 0.49803922, 0.05490196), #color='firebrick',
+                    label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % ('EXO:', coeff_EXO[1]*2614.53/coeff_EXO[1], np.absolute(coeff_EXO[2]*2614.53/coeff_EXO[1])))
 
-    if mode == 'Energy':
-        lowE = 550
-        upE = 2900
-        resE = 100
-        gridsize = 100
-        shifts = [200,400,600,800]
-        shifts_res = [50,100]
-    elif mode == 'Time':
-        lowE = 1020
-        upE = 1140
-        resE = 10
-        gridsize = 100
-        shifts = [10, 20, 30, 40]
-        shifts_res = [5]
-    elif mode == 'R':
-        lowE = 0
-        upE = 160
-        resE = 20
-        gridsize = 100
-        shifts = [10, 20, 30, 40]
-        shifts_res = [10, 20]
-    elif mode in ['X', 'Y', 'Z', 'U', 'V']:
-        lowE = -200
-        upE = 200
-        resE = 20
-        gridsize = 100
-        shifts = [20, 40, 60, 80]
-        shifts_res = [5, 10, 15]
+           print 'DNN:'
+           print np.sqrt(np.diag(var_matrix_DNN)) *2614.53/coeff_DNN[1]
+           print 'EXO:'
+           print np.sqrt(np.diag(var_matrix_EXO)) *2614.53/coeff_EXO[1]
 
-    diag = np.asarray([lowE, upE])
-    extent1 = [lowE, upE, lowE, upE]
-    extent2 = [lowE, upE, -resE, resE]
-    # plt.ion()
+       plt.step(bin_centres*2614.53/coeff_EXO[1], hist_EXO, where='mid', label='EXO', lw=1.1, alpha=0.6, color=(1., 0.49803922, 0.05490196)) #color='firebrick',
+       plt.step(bin_centres*2614.53/coeff_DNN[1], hist_DNN, where='mid', label='DNN', lw=1.1, alpha=0.6, color=(0,0.2,0.4)) #color='blue',
 
-    fig, (ax1, ax2) = plt.subplots(2, sharex=True, gridspec_kw = {'height_ratios':[3, 1]}, figsize=(8.5,11.5)) #, sharex=True) #, gridspec_kw = {'height_ratios':[3, 1]})
-    # plt.subplots_adjust(bottom=0.1, right=0.95, top=0.95, left=0.1, wspace=0.0)
-    fig.subplots_adjust(wspace=0, hspace=0.05)
-    ax1.set(aspect='equal', adjustable='box-forced')
-    ax1.set(aspect='auto')
 
-    ax1.plot(diag, diag, 'k--', lw=2)
-    for idx,shift in enumerate(shifts):
-        ax1.plot(diag, diag+shift, 'k--', alpha=(0.8-0.2*idx), lw=2, label=str(shift))
-        ax1.plot(diag, diag-shift, 'k--', alpha=(0.8-0.2*idx), lw=2, label=str(shift))
+       plt.xlabel(mode + ' [mm]')
+       plt.ylabel('Probability')
+       plt.legend(loc="best", prop={'size': 13})
+       # plt.gca().set_yscale('log')
+       if mode == 'Energy':
+           # plt.gca().set_yscale('log')
+           plt.xlim(xmin=1000, xmax=3000)
+           # plt.ylim(ymin=5.e-6, ymax=1.e-2)
+           plt.ylim(ymin=2.e-5, ymax=0.0012)
+           plt.legend(loc='upper left', prop={'size': 10})
+           plt.xlabel('Energy [keV]')
+       elif mode == 'Time':
+           plt.xlim(xmin=1030, xmax=1140)
+           plt.gca().set_yscale('linear')
+       elif mode == 'Z':
+           plt.xlim(xmin=-200, xmax=200)
+           plt.ylim(ymin=0)
+       elif mode in ['X', 'Y', 'U', 'V']:
+           plt.xlim(xmin=-200, xmax=200)
+           plt.ylim(ymin=0)
+       else:
+           raise ValueError('wrong mode chosen')
+       # plt.grid(True)
+       plt.savefig(fOUT, bbox_inches='tight')
+       plt.clf()
+       plt.close()
 
-    xvals = [2700., 3100., 2500., 3100., 2300., 3100]
-    # labelLines(ax1.get_lines()[3:], xvals=xvals, align=True,color='k')
 
-    ax2.axhline(y=0.0, ls='--', lw=2, color='black')
-    for idx,shift in enumerate(shifts_res):
-        ax2.axhline(y=-shift, ls='--', lw=2, alpha=(0.7-0.3*idx), color='black')
-        ax2.axhline(y=shift , ls='--', lw=2, alpha=(0.7-0.3*idx), color='black')
-    # ax2.axhline(y=-200.0, ls='--', lw=2, color='black')
-    # ax2.axhline(y= 200.0, ls='--', lw=2, color='black')
-    ax1.set(ylabel=ylabel + ' ' + mode)
-    # ax2.set(xlabel=xlabel + ' Energy [keV]', ylabel='Residual [keV]')
-    ax2.set(xlabel=xlabel + ' ' + mode, ylabel='(%s - %s)' % (ylabel, xlabel))
-    ax1.set_xlim([lowE, upE])
-    ax1.set_ylim([lowE, upE])
-    ax2.set_ylim([-resE, resE])
-    # ax1.xaxis.grid(True)
-    # ax1.yaxis.grid(True)
-    # ax2.xaxis.grid(True)
-    # ax2.yaxis.grid(True)
+    elif mode2 == 'real_Z':
+        f = plt.figure()
+        gs = GridSpec(2, 1, height_ratios=[5, 2])
+        ax1 = plt.subplot(gs[0])
+        ax2 = plt.subplot(gs[1], sharex=ax1)
 
-    fig.tight_layout()
-    fig.subplots_adjust(hspace=0.05)
-    plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
-    # plt.setp(ax2, yticks=[-100, -50, 0, 50, 100])
-    ax1.hexbin(x, y, bins='log', extent=extent1, gridsize=gridsize, mincnt=1, cmap=plt.get_cmap('viridis'), linewidths=0.1)
-    ax2.hexbin(x, dE, bins='log', extent=extent2, gridsize=(gridsize,gridsize/((upE-lowE)/(2*resE))), mincnt=1, cmap=plt.get_cmap('viridis'), linewidths=0.1)
-    # plt.show()
-    # raw_input("")
-    plt.savefig(fOUT)
-    plt.clf()
-    plt.close()
+        bins = 1200
+        # bins = 2400
+        bins = 40
+
+        bin_leftedge = np.linspace(-200, -10, 15)
+        bin_rightedge = np.linspace(10, 200, 15)
+        bins = np.concatenate((bin_leftedge, np.asarray([-7, 7]), bin_rightedge))
+
+        hist_DNN2, bin_edges = np.histogram(dCNN, bins=bins, range=(-200, 200))
+        hist_EXO2, bin_edges = np.histogram(dEXO, bins=bins, range=(-200, 200))
+
+
+
+        hist_DNN, bin_edges = np.histogram(dCNN, bins=bins, range=(-200, 200), density=True)
+        hist_EXO, bin_edges = np.histogram(dEXO, bins=bins, range=(-200, 200), density=True)
+
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+        error = np.sqrt(hist_DNN2 + hist_EXO2)*(hist_DNN/hist_DNN2)
+
+        ax1.step(bin_centres, hist_EXO, where='mid', label='EXO', lw=1.1, alpha=0.8,
+                 color=(1., 0.49803922, 0.05490196))  # color='firebrick',
+        ax1.step(bin_centres, hist_DNN, where='mid', label='DNN', lw=1.1, alpha=0.8,
+                 color=(0, 0.2, 0.4))  # color='blue',
+
+
+
+        ax2.errorbar(bin_centres, (hist_DNN-hist_EXO), error, color='k', fmt='.')
+
+        plt.xlabel(mode + ' [mm]')
+
+
+        ax1.set_xlim(xmin=-200, xmax=200)
+        ax1.set_ylim(ymin=0)
+
+
+        ax2.axhline(y=0., c='k', alpha=0.3)
+
+        ax2.set_xlabel('Z [mm]')
+        ax1.set_ylabel('Probability density')
+        ax2.set_ylabel('DNN Z - EXO Z')
+        ax1.legend(loc="best")
+        # ax2.set_ylim(ymin=-40, ymax=40)
+
+        # plt.grid(True)
+        f.savefig(fOUT, bbox_inches='tight')
+        plt.clf()
+        plt.close()
+
+
+    else:
+        hist_DNN, bin_edges = np.histogram(dCNN, bins=1200, range=(-6000, 6000), density=True)
+        if dEXO is not None:
+            hist_EXO, bin_edges = np.histogram(dEXO, bins=1200, range=(-6000, 6000), density=True)
+        hist_True, bin_edges = np.histogram(dTrue, bins=1200, range=(-6000, 6000), density=True)
+        bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+        # plt.fill_between(bin_centres, 0.0, hist_True, facecolor='black', alpha=0.3, interpolate=True)
+        # plt.plot(bin_centres, hist_True, color='k', label='MC', lw=0.5)
+        plt.hist(dTrue, bins=1200, range=(-6000, 6000), density=True, histtype='stepfilled', align='mid', color='k', alpha=0.3, lw=0.0)
+        plt.step(bin_centres, hist_True, where='mid', color='k', label='MC', lw=0.7)
+        if dEXO is not None:
+            plt.step(bin_centres, hist_EXO, where='mid', color='firebrick', label='EXO', lw=1.1)
+        plt.step(bin_centres, hist_DNN, where='mid', color='blue', label='DNN', lw=1.1)
+
+
+        #  Fit Gauss to Th228 Peak:
+        if mode == 'Energy':
+            peak = find_peak(hist=hist_True, bin_centres=bin_centres, peakpos=2614.5, peakfinder='max')
+            coeff = [hist_True[peak], bin_centres[peak], 50., -0.005]
+            low = np.digitize(coeff[1] - (5.5 * abs(coeff[2])), bin_centres)
+            up = np.digitize(coeff[1] + (3.0 * abs(coeff[2])), bin_centres)
+
+            from scipy.optimize import curve_fit
+            coeff_DNN, var_matrix_DNN = curve_fit(gaussErf, bin_centres[low:up], hist_DNN[low:up], p0=coeff)
+            coeff_EXO, var_matrix_EXO = curve_fit(gaussErf, bin_centres[low:up], hist_EXO[low:up], p0=coeff)
+
+
+            plt.plot(bin_centres, gauss_zero(bin_centres, *coeff_DNN[:3]), ls='--', color='blue', label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('DNN:', coeff_DNN[1], np.absolute(coeff_DNN[2])))
+            plt.plot(bin_centres, gauss_zero(bin_centres, *coeff_EXO[:3]), ls='--', color='firebrick', label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('EXO:', coeff_EXO[1], np.absolute(coeff_EXO[2])))
+
+        plt.xlabel(mode + ' [mm]')
+        plt.ylabel('Probability')
+        plt.legend(loc="best", prop={'size': 13})
+        # plt.gca().set_yscale('log')
+        if mode == 'Energy':
+            plt.gca().set_yscale('log')
+            plt.xlim(xmin=700, xmax=2700)
+            # plt.ylim(ymin=5.e-6, ymax=1.e-2)
+            plt.ylim(ymin=2.e-5, ymax=1.e-2)
+            plt.legend(loc='lower left', prop={'size': 10})
+            plt.xlabel('Energy [keV]')
+        elif mode == 'Time':
+            plt.xlim(xmin=1030, xmax=1140)
+            plt.gca().set_yscale('linear')
+        elif mode == 'Z':
+            plt.xlim(xmin=-200, xmax=200)
+        elif mode in ['X', 'Y', 'U', 'V']:
+            plt.xlim(xmin=-200, xmax=200)
+            # plt.ylim(ymin=5.e-6, ymax=1.e-2)
+        else: raise ValueError('wrong mode chosen')
+        # plt.grid(True)
+        plt.savefig(fOUT, bbox_inches='tight')
+        plt.clf()
+        plt.close()
+
+
+
+def plot_diagonal(x, y, xlabel, ylabel, mode, fOUT, mode2='mc'):
+    if mode2 == 'real':
+        dE = y - x
+
+        if mode == 'Energy':
+            lowE = 550
+            upE = 2900
+            resE = 100
+            gridsize = 100
+            shifts = [200, 400, 600, 800]
+            shifts_res = [50, 100]
+        elif mode == 'Time':
+            lowE = 1020
+            upE = 1140
+            resE = 10
+            gridsize = 100
+            shifts = [10, 20, 30, 40]
+            shifts_res = [5]
+        elif mode == 'R':
+            lowE = 0
+            upE = 160
+            resE = 20
+            gridsize = 100
+            shifts = [10, 20, 30, 40]
+            shifts_res = [10, 20]
+        elif mode in ['X', 'Y', 'Z', 'U', 'V']:
+            lowE = -180
+            upE = 180
+            resE = 7
+            gridsize = 50
+            shifts = [20, 40, 60, 80]
+            shifts_res = [5, 10, 15]
+
+        diag = np.asarray([lowE, upE])
+        extent1 = [lowE, upE, lowE, upE]
+        extent2 = [lowE, upE, -resE, resE]
+        # plt.ion()
+
+        fig, (ax1, ax2) = plt.subplots(2, sharex=True, gridspec_kw={'height_ratios': [3, 1]},
+                                       figsize=(8.5, 11.5))  # , sharex=True) #, gridspec_kw = {'height_ratios':[3, 1]})
+        # plt.subplots_adjust(bottom=0.1, right=0.95, top=0.95, left=0.1, wspace=0.0)
+        fig.subplots_adjust(wspace=0, hspace=0.05)
+        ax1.set(aspect='equal', adjustable='box-forced')
+        ax1.set(aspect='auto')
+
+        ax1.plot(diag, diag, 'k--', lw=2)
+        for idx, shift in enumerate(shifts):
+            ax1.plot(diag, diag + shift, 'k--', alpha=(0.8 - 0.2 * idx), lw=2, label=str(shift))
+            ax1.plot(diag, diag - shift, 'k--', alpha=(0.8 - 0.2 * idx), lw=2, label=str(shift))
+
+        xvals = [2700., 3100., 2500., 3100., 2300., 3100]
+        # labelLines(ax1.get_lines()[3:], xvals=xvals, align=True, color='k')
+
+        ax2.axhline(y=0.0, ls='--', lw=2, color='black')
+        for idx, shift in enumerate(shifts_res):
+            ax2.axhline(y=-shift, ls='--', lw=2, alpha=(0.7 - 0.3 * idx), color='black')
+            ax2.axhline(y=shift, ls='--', lw=2, alpha=(0.7 - 0.3 * idx), color='black')
+        # ax2.axhline(y=-200.0, ls='--', lw=2, color='black')
+        # ax2.axhline(y= 200.0, ls='--', lw=2, color='black')
+        ax1.set(ylabel='DNN U [mm]')
+        ax2.set(xlabel='EXO U [mm]', ylabel='Residual [mm]')
+        # ax1.set(ylabel=ylabel + ' ' + mode)
+        # ax2.set(xlabel=xlabel + ' ' + mode, ylabel='(%s - %s)' % (ylabel, xlabel))
+        ax1.set_xlim([lowE, upE])
+        ax1.set_ylim([lowE, upE])
+        ax2.set_ylim([-resE, resE])
+        # ax1.xaxis.grid(True)
+        # ax1.yaxis.grid(True)
+        # ax2.xaxis.grid(True)
+        # ax2.yaxis.grid(True)
+
+        fig.tight_layout()
+        fig.subplots_adjust(hspace=0.05)
+        plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
+        # plt.setp(ax2, yticks=[-100, -50, 0, 50, 100])
+        ax1.hexbin(x, y, bins='log', extent=extent1, gridsize=2*gridsize, mincnt=1, cmap=plt.get_cmap('viridis'),
+                   linewidths=0.1)
+        ax2.hexbin(x, dE, bins='log', extent=extent2, gridsize=gridsize, mincnt=1, cmap=plt.get_cmap('viridis'),
+                   linewidths=0.1)
+        # plt.show()
+        # raw_input("")
+        plt.savefig(fOUT)
+        plt.clf()
+        plt.close()
+
+    else:
+        dE = y - x
+
+        if mode == 'Energy':
+            lowE = 550
+            upE = 2900
+            resE = 100
+            gridsize = 100
+            shifts = [200,400,600,800]
+            shifts_res = [50,100]
+        elif mode == 'Time':
+            lowE = 1020
+            upE = 1140
+            resE = 10
+            gridsize = 100
+            shifts = [10, 20, 30, 40]
+            shifts_res = [5]
+        elif mode == 'R':
+            lowE = 0
+            upE = 160
+            resE = 20
+            gridsize = 100
+            shifts = [10, 20, 30, 40]
+            shifts_res = [10, 20]
+        elif mode in ['X', 'Y', 'Z', 'U', 'V']:
+            lowE = -180
+            upE = 180
+            resE = 5
+            gridsize = 100
+            shifts = [20, 40, 60, 80]
+            shifts_res = [5, 10, 15]
+
+        diag = np.asarray([lowE, upE])
+        extent1 = [lowE, upE, lowE, upE]
+        extent2 = [lowE, upE, -resE, resE]
+        # plt.ion()
+
+        fig, (ax1, ax2) = plt.subplots(2, sharex=True, gridspec_kw = {'height_ratios':[3, 1]}, figsize=(8.5, 11.5)) #, sharex=True) #, gridspec_kw = {'height_ratios':[3, 1]})
+        # plt.subplots_adjust(bottom=0.1, right=0.95, top=0.95, left=0.1, wspace=0.0)
+        fig.subplots_adjust(wspace=0, hspace=0.05)
+        ax1.set(aspect='equal', adjustable='box-forced')
+        ax1.set(aspect='auto')
+
+        ax1.plot(diag, diag, 'k--', lw=2)
+        for idx,shift in enumerate(shifts):
+            ax1.plot(diag, diag+shift, 'k--', alpha=(0.8-0.2*idx), lw=2, label=str(shift))
+            ax1.plot(diag, diag-shift, 'k--', alpha=(0.8-0.2*idx), lw=2, label=str(shift))
+
+        xvals = [2700., 3100., 2500., 3100., 2300., 3100]
+        # labelLines(ax1.get_lines()[3:], xvals=xvals, align=True,color='k')
+
+        ax2.axhline(y=0.0, ls='--', lw=2, color='black')
+        for idx,shift in enumerate(shifts_res):
+            ax2.axhline(y=-shift, ls='--', lw=2, alpha=(0.7-0.3*idx), color='black')
+            ax2.axhline(y=shift , ls='--', lw=2, alpha=(0.7-0.3*idx), color='black')
+        # ax2.axhline(y=-200.0, ls='--', lw=2, color='black')
+        # ax2.axhline(y= 200.0, ls='--', lw=2, color='black')
+        ax1.set(ylabel='DNN U [mm]')
+        ax2.set(xlabel='True MC U [mm]', ylabel='Residual [mm]')
+        # ax1.set(ylabel=ylabel + ' ' + mode)
+        # ax2.set(xlabel=xlabel + ' ' + mode, ylabel='(%s - %s)' % (ylabel, xlabel))
+        ax1.set_xlim([lowE, upE])
+        ax1.set_ylim([lowE, upE])
+        ax2.set_ylim([-resE, resE])
+        # ax1.xaxis.grid(True)
+        # ax1.yaxis.grid(True)
+        # ax2.xaxis.grid(True)
+        # ax2.yaxis.grid(True)
+
+        fig.tight_layout()
+        fig.subplots_adjust(hspace=0.05)
+        plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
+        # plt.setp(ax2, yticks=[-100, -50, 0, 50, 100])
+        ax1.hexbin(x, y, bins='log', extent=extent1, gridsize=gridsize, mincnt=1, cmap=plt.get_cmap('viridis'), linewidths=0.1)
+        ax2.hexbin(x, dE, bins='log', extent=extent2, gridsize=gridsize, mincnt=1, cmap=plt.get_cmap('viridis'), linewidths=0.1)
+        # plt.show()
+        # raw_input("")
+        plt.savefig(fOUT)
+        plt.clf()
+        plt.close()
+    return
 
 
 # training curves
@@ -1041,138 +1249,153 @@ def plot_losses(folderOUT, history):
 
 
 
-def plot_boxplot(dTrue, dTrue_masked, dEXO, dEXO_masked, dDNN, dDNN_masked, dTrue_masked_zeroed, dEXO_masked_zeroed, dDNN_masked_zeroed, title, name_DNN_masked, name_EXO_masked, fOUT, name_DNN='DNN', name_EXO='EXO'):
+def plot_boxplot(dTrue, dTrue_masked, dEXO, dEXO_masked, dDNN, dDNN_masked, dTrue_masked_zeroed, dEXO_masked_zeroed, dDNN_masked_zeroed, title, name_DNN_masked, name_EXO_masked, fOUT, name_DNN='DNN', name_EXO='EXO', mode='wirecheck'):
     from matplotlib.gridspec import GridSpec
     from matplotlib.font_manager import FontProperties
-# Drei geteilter PLOT:
 
-    # delDNN = dDNN - dTrue
-    # delDNN_masked = dDNN_masked - dTrue_masked
-    # delEXO = dEXO - dTrue
-    # delEXO_masked = dEXO_masked - dTrue_masked
-    # delDNN_zeroed = dDNN_masked_zeroed - dTrue_masked_zeroed
-    # delEXO_zeroed = dEXO_masked_zeroed - dTrue_masked_zeroed
-    #
-    # test_data = delDNN - delEXO
-    # test_data2 = delDNN_masked - delEXO_masked
-    #
-    # data = [delEXO, delDNN, delEXO_masked, delDNN_masked, delEXO_zeroed, delDNN_zeroed]
-    # labels = [name_EXO, name_DNN, name_EXO_masked, name_DNN_masked, 'EXO_onewire', 'DNN_onewire']
-    #
-    #
-    #
-    # positions = [1, 1.3, 2, 2.3, 3, 3.3]
-    # positions_violin = [1.15, 2.15, 3.15]
-    # limit = 5
-    # limit_max = 50
-    # whis = [2.5, 97.5]
-    #
-    #
-    # ax1 = plt.subplot2grid((1, 6), (0,0))
-    # plt.xlim(xmin=-limit_max, xmax=-limit)
-    # plt.boxplot([data[0], data[2], data[4]], notch=True, vert=False, whis=whis)
-    # plt.boxplot([data[1], data[3], data[5]], notch=True, positions=[positions[1], positions[3], positions[5]], vert=False, whis=whis)
-    #
-    #
-    # ax2 = plt.subplot2grid((1,6), (0,1), colspan=4, sharey=ax1)
-    # plt.setp(ax2.get_yticklabels(), visible=False)
-    # plt.axvline(x=0, ymin=0, ymax=1, color='black', alpha=0.3)
-    # plt.xlim(xmax=limit, xmin=-limit)
-    # plt.xlabel('Residual (pred - true) [mm]')
-    # plt.boxplot([data[0], data[2], data[4]], notch=True, vert=False, whis=whis)
-    # v1 = plt.violinplot([data[0], data[2], data[4]], positions=positions_violin, widths=0.9, showextrema=False, vert=False, points=2000)
-    #
-    # plt.boxplot([data[1], data[3], data[5]], notch=True, positions=[positions[1], positions[3], positions[5]], vert=False, whis=whis)
-    # v2 = plt.violinplot([data[1], data[3], data[5]], positions=positions_violin, widths=0.9, showextrema=False, vert=False, points=2000)
-    # for b in v1['bodies']:
-    #     m = np.mean(b.get_paths()[0].vertices[:, 1])
-    #     b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], -np.inf, m)
-    # for b in v2['bodies']:
-    #     m = np.mean(b.get_paths()[0].vertices[:, 1])
-    #     b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], m, np.inf)
-    #
-    #
-    # ax3 = plt.subplot2grid((1, 6), (0, 5), sharey=ax1)
-    # plt.setp(ax3.get_yticklabels(), visible=False)
-    # plt.xlim(xmax=limit_max, xmin=limit)
-    # plt.boxplot([data[0], data[2], data[4]], notch=True, vert=False, whis=whis)
-    # plt.boxplot([data[1], data[3], data[5]], notch=True, positions=[positions[1], positions[3], positions[5]], vert=False, whis=whis)
-    #
-    #
-    # plt.subplots_adjust(wspace=0)
-    #
-    # ax1.set_yticks(positions)
-    # ax1.set_yticklabels(labels)
-    # ax1.set_ylim(0.6, 3.7)
-    #
-    # # plt.legend(loc="best", prop={'size': 13})
-    # # plt.xlim(xmin=-limit, xmax=limit)
-    # # plt.ylim(ymin=-20, ymax=20)
-    # # plt.yscale('symlog', basey=5)
-    # plt.savefig(fOUT, bbox_inches='tight')
-    # plt.clf()
-    # plt.close()
+    points = 20000
+    points = 100
+    # points = 200
+    # points = 5000
+
+    if mode == 'SS':
+        plt.rc('font', size=11)
+        delDNN = dDNN - dTrue
+        delDNN_masked = dDNN_masked - dTrue_masked
+        delEXO = dEXO - dTrue
+        delEXO_masked = dEXO_masked - dTrue_masked
+        delDNN_zeroed = dDNN_masked_zeroed - dTrue_masked_zeroed
+        delEXO_zeroed = dEXO_masked_zeroed - dTrue_masked_zeroed
 
 
-    delDNN = dDNN - dTrue
-    delDNN_masked = dDNN_masked - dTrue_masked
-    delEXO = dEXO - dTrue
-    delEXO_masked = dEXO_masked - dTrue_masked
-    delDNN_zeroed = dDNN_masked_zeroed - dTrue_masked_zeroed
-    delEXO_zeroed = dEXO_masked_zeroed - dTrue_masked_zeroed
+        data = [delEXO, delDNN, delEXO_masked, delDNN_masked, delEXO_zeroed, delDNN_zeroed]
+        labels = ['EXO', 'DNN', 'EXO', 'DNN', 'EXO', 'DNN']
 
-    data = [delEXO, delDNN, delEXO_masked, delDNN_masked, delEXO_zeroed, delDNN_zeroed]
-    labels = ['EXO', 'DNN', 'EXO', 'DNN', 'EXO', 'DNN']
+        font = FontProperties()
+        font.set_family('serif')
 
-    font = FontProperties()
-    font.set_family('serif')
+        positions = [1, 1.3, 2, 2.3, 3, 3.3]
+        positions_violin = [1.15, 2.15, 3.15]
+        limit = 5
+        limit_max = 50
+        whis = [2.5, 97.5]
 
+        plt.text(-limit + 0.5, 3.2, '(a)', fontproperties=font)
+        plt.text(-limit + 0.5, 2.2, '(b)', fontproperties=font)
+        plt.text(-limit + 0.5, 1.2, '(c)', fontproperties=font)
 
-    positions = [1, 1.3, 2, 2.3, 3, 3.3]
-    positions_violin = [1.15, 2.15, 3.15]
-    limit = 5
-    limit_max = 50
-    whis = [2.5, 97.5]
+        # color=(0, 0.2, 0.4))color=(0.89, 0.1, 0.11))
 
-    plt.text(-limit + 0.5, 1.15, 'a)', fontproperties=font)
-    plt.text(-limit + 0.5, 2.15, 'b)', fontproperties=font)
-    plt.text(-limit + 0.5, 3.15, 'c)', fontproperties=font)
+        plt.axvline(x=0, ymin=0, ymax=1, color='black', alpha=0.3)
+        plt.xlim(xmax=limit, xmin=-limit)
+        plt.xlabel('Residual [mm]', fontproperties=font)
 
 
-    plt.axvline(x=0, ymin=0, ymax=1, color='black', alpha=0.3)
-    plt.xlim(xmax=limit, xmin=-limit)
-    plt.xlabel('Residual (pred - true) [mm]', fontproperties = font)
-    plt.boxplot([data[0], data[2], data[4]], notch=True, vert=False, whis=whis, showfliers=False)
-    v1 = plt.violinplot([data[0], data[2], data[4]], positions=positions_violin, widths=0.9, showextrema=False, vert=False, points=20000, bw_method=0.03)
+        plt.boxplot([data[5], data[3], data[1]], notch=True, positions=[positions[1], positions[3], positions[5]],
+                    vert=False, whis=whis, showfliers=False, widths=0.2)
+        v2 = plt.violinplot([data[5], data[3], data[1]], positions=positions_violin, widths=0.9, showextrema=False,
+                            vert=False, points=points, bw_method=0.03)
 
-    plt.boxplot([data[1], data[3], data[5]], notch=True, positions=[positions[1], positions[3], positions[5]], vert=False, whis=whis, showfliers=False)
-    v2 = plt.violinplot([data[1], data[3], data[5]], positions=positions_violin, widths=0.9, showextrema=False, vert=False, points=20000, bw_method=0.03)
+        plt.boxplot([data[4], data[2], data[0]], notch=True, vert=False, whis=whis, showfliers=False, widths=0.2)
+        v1 = plt.violinplot([data[4], data[2], data[0]], positions=positions_violin, widths=0.9, showextrema=False,
+                            vert=False, points=points, bw_method=0.03)
 
-    # print v2
+        for b in v1['bodies']:
+            m = np.mean(b.get_paths()[0].vertices[:, 1])
+            b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], -np.inf, m)
+            # b.set_facecolor((0.86, 0.12, 0.12))
+            # b.set_edgecolor((0.86, 0.12, 0.12))
+            b.set_alpha(0.4)
+        for b in v2['bodies']:
+            m = np.mean(b.get_paths()[0].vertices[:, 1])
+            b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], m, np.inf)
+            b.set_facecolor((0, 0.2, 0.4))
+            b.set_edgecolor((0, 0.2, 0.4))
+            b.set_alpha(0.5)
 
-    print
-    print v1['bodies'][0].get_facecolor()
-    print v2['bodies'][0].get_facecolor()
+        plt.yticks(positions, labels, fontproperties=font)
+        # plt.set_yticklabels(labels)
+        plt.ylim([0.6, 3.7])
+        plt.xticks(fontproperties=font)
 
-    for b in v1['bodies']:
-        m = np.mean(b.get_paths()[0].vertices[:, 1])
-        b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], -np.inf, m)
-    for b in v2['bodies']:
-        m = np.mean(b.get_paths()[0].vertices[:, 1])
-        b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], m, np.inf)
+        # plt.legend(loc="best", prop={'size': 13})
+        # plt.xlim(xmin=-limit, xmax=limit)
+        # plt.ylim(ymin=-20, ymax=20)
+        # plt.yscale('symlog', basey=5)
+        plt.savefig(fOUT, bbox_inches='tight')
+        plt.clf()
+        plt.close()
+        return
 
-    plt.yticks(positions, labels, fontproperties=font)
-    # plt.set_yticklabels(labels)
-    plt.ylim([0.6, 3.7])
-    plt.xticks(fontproperties=font)
+    if mode == 'wirecheck':
+        plt.rc('font', size=11)
+        delDNN = dDNN - dTrue
+        delDNN_masked = dDNN_masked - dTrue_masked
+        delEXO = dEXO - dTrue
+        delEXO_masked = dEXO_masked - dTrue_masked
+        delDNN_zeroed = dDNN_masked_zeroed - dTrue_masked_zeroed
+        delEXO_zeroed = dEXO_masked_zeroed - dTrue_masked_zeroed
 
-    # plt.legend(loc="best", prop={'size': 13})
-    # plt.xlim(xmin=-limit, xmax=limit)
-    # plt.ylim(ymin=-20, ymax=20)
-    # plt.yscale('symlog', basey=5)
-    plt.savefig(fOUT, bbox_inches='tight')
-    plt.clf()
-    plt.close()
+        data = [delEXO, delDNN, delEXO_masked, delDNN_masked, delEXO_zeroed, delDNN_zeroed]
+        labels = ['EXO', 'DNN', 'EXO', 'DNN', 'EXO', 'DNN']
+
+        font = FontProperties()
+        font.set_family('serif')
+
+
+        positions = [1, 1.3, 2, 2.3, 3, 3.3]
+        positions_violin = [1.15, 2.15, 3.15]
+        limit = 5
+        limit_max = 50
+        whis = [2.5, 97.5]
+
+        plt.text(-limit + 0.5, 3.2, '(a)', fontproperties=font)
+        plt.text(-limit + 0.5, 2.2, '(b)', fontproperties=font)
+        # plt.text(-limit + 0.5, 1.15, 'c)', fontproperties=font)
+
+
+        plt.axvline(x=0, ymin=0, ymax=1, color='black', alpha=0.3)
+        plt.xlim(xmax=limit, xmin=-limit)
+        plt.xlabel('Residual [mm]', fontproperties=font)
+
+
+        plt.boxplot([data[1], data[5], data[3]], notch=True, positions=[positions[1], positions[3], positions[5]], vert=False, whis=whis, showfliers=False, widths=0.2)
+        v2 = plt.violinplot([data[1], data[5], data[3]], positions=positions_violin, widths=0.9, showextrema=False, vert=False, points=points, bw_method=0.03)
+
+        plt.boxplot([data[0], data[4], data[2]], notch=True, vert=False, whis=whis, showfliers=False, widths=0.2)
+        v1 = plt.violinplot([data[0], data[4], data[2]], positions=positions_violin, widths=0.9, showextrema=False, vert=False, points=points, bw_method=0.03)
+
+
+        # print
+        # print
+        # print '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+        for b in v1['bodies']:
+            m = np.mean(b.get_paths()[0].vertices[:, 1])
+            b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], -np.inf, m)
+            # b.set_facecolor((0.89, 0.1, 0.11))
+            # b.set_edgecolor((0.89, 0.1, 0.11))
+            b.set_alpha(0.4)
+            # print b.get_facecolor()
+
+        for b in v2['bodies']:
+            m = np.mean(b.get_paths()[0].vertices[:, 1])
+            b.get_paths()[0].vertices[:, 1] = np.clip(b.get_paths()[0].vertices[:, 1], m, np.inf)
+            b.set_facecolor((0, 0.2, 0.4))
+            b.set_edgecolor((0, 0.2, 0.4))
+            b.set_alpha(0.5)
+
+        plt.yticks(positions, labels, fontproperties=font)
+        # plt.set_yticklabels(labels)
+        plt.ylim([1.6, 3.7])
+        plt.xticks(fontproperties=font)
+
+        # plt.legend(loc="best", prop={'size': 13})
+        # plt.xlim(xmin=-limit, xmax=limit)
+        # plt.ylim(ymin=-20, ymax=20)
+        # plt.yscale('symlog', basey=5)
+        plt.savefig(fOUT, bbox_inches='tight')
+        plt.clf()
+        plt.close()
     return
 
 
@@ -1180,6 +1403,8 @@ def plot_residual_correlation(dTrue, dDNN, dEXO, mode, fOUT, limit=10):
     from matplotlib.ticker import NullFormatter
     from matplotlib.font_manager import FontProperties
     from scipy.stats import pearsonr
+
+    plt.rc('font', size=12)
 
     font = FontProperties()
     font.set_family('serif')
@@ -1211,12 +1436,7 @@ def plot_residual_correlation(dTrue, dDNN, dEXO, mode, fOUT, limit=10):
     plt.figure(1, figsize=(8, 8))
 
     axScatter = plt.axes(rect_scatter)
-    if mode == 'U' or mode == 'V' or mode == 'Z':
-        plt.xlabel('Residual EXO [mm]', fontproperties=font)
-        plt.ylabel('Residual DNN [mm]', fontproperties=font)
-    if mode == 'energy':
-        plt.xlabel('Residual EXO [keV]', fontproperties=font)
-        plt.ylabel('Residual DNN [keV]', fontproperties=font)
+
 
     axHistx = plt.axes(rect_histx)
     axHisty = plt.axes(rect_histy)
@@ -1228,10 +1448,42 @@ def plot_residual_correlation(dTrue, dDNN, dEXO, mode, fOUT, limit=10):
     mask_limit_DNN = np.absolute(delDNN) < limit
     mask_limit = np.logical_and(mask_limit_DNN, mask_limit_EXO)
 
-    axHistx.text(0.03, 0.9, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delEXO[mask_limit_EXO]), np.std(delEXO[mask_limit_EXO])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='left',
-     verticalalignment='top', transform=axHistx.transAxes)
-    axHisty.text(0.5, 0.97, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delDNN[mask_limit_DNN]), np.std(delDNN[mask_limit_DNN])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='center',
-     verticalalignment='top', transform=axHisty.transAxes)
+    if mode == 'U' or mode == 'V' or mode == 'Z':
+        axScatter.set_xlabel('Residual EXO [mm]', fontproperties=font)
+        axScatter.set_ylabel('Residual DNN [mm]', fontproperties=font)
+        axHistx.text(0.03, 0.9, '$\mu=%.1f$\n$\sigma=%.2f$' % (np.mean(delEXO[mask_limit_EXO]), np.std(delEXO[mask_limit_EXO])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='left',
+                     verticalalignment='top', transform=axHistx.transAxes)
+        axHisty.text(0.5, 0.97, '$\mu=%.1f$\n$\sigma=%.2f$' % (np.mean(delDNN[mask_limit_DNN]), np.std(delDNN[mask_limit_DNN])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='center',
+                     verticalalignment='top', transform=axHisty.transAxes)
+    if mode == 'energy':
+        axScatter.set_xlabel('Residual EXO [keV]', fontproperties=font)
+        axScatter.set_ylabel('Residual DNN [keV]', fontproperties=font)
+        axHistx.text(0.03, 0.9, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delEXO[mask_limit_EXO]), np.std(delEXO[mask_limit_EXO])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='left',
+         verticalalignment='top', transform=axHistx.transAxes)
+        axHisty.text(0.5, 0.97, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delDNN[mask_limit_DNN]), np.std(delDNN[mask_limit_DNN])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='center',
+         verticalalignment='top', transform=axHisty.transAxes)
+
+    if mode == 'UvsV':
+        axScatter.set_xlabel('Residual V-wire-input [keV]', fontproperties=font)
+        axScatter.set_ylabel('Residual U-wire input [keV]', fontproperties=font)
+        axHistx.text(0.03, 0.9, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delEXO[mask_limit_EXO]), np.std(delEXO[mask_limit_EXO])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='left',
+         verticalalignment='top', transform=axHistx.transAxes)
+        axHisty.text(0.5, 0.97, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delDNN[mask_limit_DNN]), np.std(delDNN[mask_limit_DNN])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='center',
+         verticalalignment='top', transform=axHisty.transAxes)
+    if mode == 'UVvsU':
+        axScatter.set_xlabel('Residual U-wire-input [keV]', fontproperties=font)
+        axScatter.set_ylabel('Residual UV-wire input [keV]', fontproperties=font)
+        axHistx.text(0.03, 0.9, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delEXO[mask_limit_EXO]), np.std(delEXO[mask_limit_EXO])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='left',
+         verticalalignment='top', transform=axHistx.transAxes)
+        axHisty.text(0.5, 0.97, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delDNN[mask_limit_DNN]), np.std(delDNN[mask_limit_DNN])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='center',
+         verticalalignment='top', transform=axHisty.transAxes)
+    if mode == 'UVvsV':
+        axScatter.set_xlabel('Residual V-wire-input [keV]', fontproperties=font)
+        axScatter.set_ylabel('Residual UV-wire input [keV]', fontproperties=font)
+        axHistx.text(0.03, 0.9, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delEXO[mask_limit_EXO]), np.std(delEXO[mask_limit_EXO])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='left',
+         verticalalignment='top', transform=axHistx.transAxes)
+        axHisty.text(0.5, 0.97, '$\mu=%.1f$\n$\sigma=%.1f$' % (np.mean(delDNN[mask_limit_DNN]), np.std(delDNN[mask_limit_DNN])), fontproperties=font, bbox=dict(fc="none"), horizontalalignment='center',
+         verticalalignment='top', transform=axHisty.transAxes)
 
     # no labels
     axHistx.xaxis.set_major_formatter(nullfmt)
@@ -1241,25 +1493,30 @@ def plot_residual_correlation(dTrue, dDNN, dEXO, mode, fOUT, limit=10):
     binwidth = 100 / (2 * limit)
 
     lim = limit
-    gridsize = 50
+    gridsize = 80
 
     # the scatter plot:
     axScatter.hexbin(delEXO[mask_limit], delDNN[mask_limit], gridsize=gridsize, mincnt=1,  # norm=colors.Normalize(),
            cmap=plt.get_cmap('viridis'), linewidths=0.1, bins='log')
 
 
-    axScatter.set_xlim((-lim, lim))
-    axScatter.set_ylim((-lim, lim))
+    axScatter.set_xlim((-lim+0.1, lim-0.1))
+    axScatter.set_ylim((-lim+0.1, lim-0.1))
 
     if mode == 'energy':
-        axScatter.set_xlim((-lim, 100))
-        axScatter.set_ylim((-lim, 100))
+        axScatter.set_xlim((-lim, 99))
+        axScatter.set_ylim((-lim, 99))
+
+
+    # if mode == 'UvsV' or mode == 'UVvsU' or mode == 'UVvsV':
+    #     axScatter.set_xlim((-lim, lim))
+    #     axScatter.set_ylim((-lim, lim))
 
     # bins = np.arange(-lim, lim, binwidth)
-    bins = 400
+    bins = 200
 
-    n_x, bins_x, patches_x = axHistx.hist(delEXO[mask_limit_EXO], bins=bins)
-    n_y, bins_y, patches_y = axHisty.hist(delDNN[mask_limit_DNN], bins=bins, orientation='horizontal')
+    n_x, bins_x, patches_x = axHistx.hist(delEXO[mask_limit_EXO], bins=bins, histtype='stepfilled', color=(1., 0.49803922, 0.05490196), alpha=0.4)#, color=(0.89, 0.1, 0.11))
+    n_y, bins_y, patches_y = axHisty.hist(delDNN[mask_limit_DNN], bins=bins, orientation='horizontal', histtype='stepfilled', color=(0, 0.2, 0.4), alpha=0.5)
 
     axHistx.set_xlim(axScatter.get_xlim())
     axHisty.set_ylim(axScatter.get_ylim())
@@ -1274,67 +1531,165 @@ def plot_residual_correlation(dTrue, dDNN, dEXO, mode, fOUT, limit=10):
 
 
 # histogram of the data
-def plot_residual_histo(dTrue, dDNN, dEXO, title, name_True, name_DNN, name_EXO, fOUT, limit=10):
+def plot_residual_histo(dTrue, dDNN, dEXO, title, name_True, name_DNN, name_EXO, fOUT, dMC_EXO=None, dMC_DNN=None, limit=10, mode='mc'):
+    from matplotlib.gridspec import GridSpec
+    plt.rc('font', size=12)
 
-    # print dTrue.shape
-    # print dDNN.shape
-    # print dEXO.shape
-
-    delDNN = dDNN - dTrue
-    if dEXO is not None:
-
-        delEXO = dEXO - dTrue
-        mask_range_EXO = [np.absolute(delEXO) < limit]
-        delEXO = delEXO[mask_range_EXO]
-
-    mask_range_DNN = [np.absolute(delDNN) < limit]
-    delDNN = delDNN[mask_range_DNN]
-
-    bins = 400
-    if limit == 100:
-
+    if mode == 'real':
+        res_real = dDNN - dEXO
         if dEXO is not None:
-            hist_delEXO, bin_edges, _ = plt.hist(delEXO, bins=bins, range=(-limit, limit), density=False, facecolor='red', alpha=0.6, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('EXO:', np.mean(delEXO), np.std(delEXO)))
-        hist_delDNN, bin_edges, _ = plt.hist(delDNN, bins=bins, range=(-limit, limit), density=False, facecolor='blue', alpha=0.6, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('DNN:', np.mean(delDNN), np.std(delDNN)))
+            res_MC = dMC_DNN - dMC_EXO
+            mask_range_EXO = [np.absolute(res_MC) < limit]
+            res_MC = res_MC[mask_range_EXO]
+
+        mask_range_DNN = [np.absolute(res_real) < limit]
+        res_real = res_real[mask_range_DNN]
+        bins = 100
+
+        if np.mean(res_MC) > -0.005 and np.mean(res_MC) < 0.0:
+            plt.hist(res_MC, bins=bins, range=(-limit, limit), density=True, color=(1., 0.49803922, 0.05490196), alpha=0.4, histtype='stepfilled',
+                                                 label='%s\n$\mu=%.1f$\n$ \sigma=%.2f$' % ('MC:', 0.00, np.std(res_MC)))
+        else:
+            plt.hist(res_MC, bins=bins, range=(-limit, limit), density=True,
+                                                 color=(1., 0.49803922, 0.05490196), alpha=0.4, histtype='stepfilled',
+                                                 label='%s\n$\mu=%.1f$\n$ \sigma=%.2f$' % (
+                                                 'MC:', np.mean(res_MC), np.std(res_MC)))
+
+        if np.mean(res_real) > -0.005 and np.mean(res_real) < 0.0:
+            plt.hist(res_real, bins=bins, range=(-limit, limit), density=True, color=(0, 0.2, 0.4), alpha=0.5, histtype='stepfilled',
+                                                 # label='%s\n$\mu=%.2f$\n$ \sigma=%.2f$' % ('DNN:', 0.00, np.std(res_real)))
+                                                 label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % ('Real:', 0.00, np.std(res_real)))
+        else:
+            plt.hist(res_real, bins=bins, range=(-limit, limit), density=True, color=(0, 0.2, 0.4), alpha=0.5, histtype='stepfilled',
+                                                 # label='%s\n$\mu=%.2f$\n$ \sigma=%.2f$' % ('DNN:', np.mean(res_real), np.std(res_real)))
+                                                 label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % ('Real:', np.mean(res_real), np.std(res_real)))
+
+        plt.xlabel('DNN ' + title + ' - EXO ' + title + ' [mm]')
+        plt.ylabel('Probability density')
+        plt.legend(loc="best")
+        plt.xlim(xmin=-limit, xmax=limit)
+        plt.savefig(fOUT, bbox_inches='tight')
+        plt.clf()
+        plt.close()
+
+    elif mode == 'real_V':
+        res_real = dDNN - dEXO
+        if dEXO is not None:
+            res_MC = dMC_DNN - dMC_EXO
+            mask_range_EXO = [np.absolute(res_MC) < limit]
+            res_MC = res_MC[mask_range_EXO]
+
+        mask_range_DNN = [np.absolute(res_real) < limit]
+        res_real = res_real[mask_range_DNN]
+
+        bin_center = np.linspace(-3, 3, 10)
+        bins = np.concatenate((np.asarray([-7, -4]), bin_center, np.asarray([4, 7])))
+
+        f = plt.figure()
+        gs = GridSpec(2, 1, height_ratios=[5, 2])
+        ax1 = plt.subplot(gs[0])
+        ax2 = plt.subplot(gs[1], sharex=ax1)
+
+        if np.mean(res_MC) > -0.005 and np.mean(res_MC) < 0.0:
+
+            # hist_MC1, bins_MC, patches = ax1.hist(res_MC, bins=bins_edge, range=(-limit, -2), density=True, color=(1., 0.49803922, 0.05490196), alpha=0.8, histtype='step')
+
+            hist_MC, bins_MC, patches = ax1.hist(res_MC, bins=bins, range=(-limit, limit), density=True, color=(0.3, 0.69, 0.29), histtype='step', linewidth=1.5,
+                                                 label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % ('MC:', 0.00, np.std(res_MC)))
+            #
+            # hist_MC3, bins_MC, patches = ax1.hist(res_MC, bins=bins_edge, range=(2, limit), density=True, color=(1., 0.49803922, 0.05490196), alpha=0.8, histtype='step')
+            #
+            # hist_MC = np.concatenate(hist_MC1, hist_MC2, hist_MC3)
+
+        else:
+            hist_MC, bins_MC, patches = ax1.hist(res_MC, bins=bins, range=(-limit, limit), density=True,
+                                                 color=(0.3, 0.69, 0.29), histtype='step', linewidth=1.5,
+                                                 label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % (
+                                                 'MC:', np.mean(res_MC), np.std(res_MC)))
+
+        if np.mean(res_real) > -0.005 and np.mean(res_real) < 0.0:
+            hist, bin_edges = np.histogram(res_real, bins=bins, range=(-limit, limit))
+
+            error = np.sqrt(hist)
+            hist2, bin_edges = np.histogram(res_real, bins=bins, range=(-limit, limit), density=True)
+            bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+            error = error * hist2/hist
+            ax1.errorbar(bin_centres, hist2, yerr=error, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % ('Real:', 0.0, np.std(res_real)), fmt='.', color='black')
+
+        else:
+            hist, bin_edges = np.histogram(res_real, bins=bins, range=(-limit, limit))
+            error = np.sqrt(hist)
+            hist2, bin_edges = np.histogram(res_real, bins=bins, range=(-limit, limit), density=True)
+            bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+            error = error * hist2 / hist
+
+            ax1.errorbar(bin_centres, hist2, yerr=error, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % ('Real:', np.mean(res_real), np.std(res_real)), fmt='.', color='black')
+
+        ax2.errorbar(bin_centres, (hist2 - hist_MC) / hist_MC*100, error / hist_MC*100, color='k', fmt='.')#, label='%s (%s)' % (source, position))
+        ax2.axhline(y=0., c='k', alpha=0.3)
+
+        ax2.set_xlabel('DNN ' + title + ' - EXO ' + title + ' [mm]')
+        ax1.set_ylabel('Probability density')
+        ax2.set_ylabel('(data-MC)/MC [%]')
+        ax1.legend(loc="best")
+        ax1.set_xlim(xmin=-limit, xmax=limit)
+        ax2.set_ylim(ymin=-40, ymax=40)
+
+        f.savefig(fOUT, bbox_inches='tight')
+        plt.clf()
+        plt.close()
 
     else:
-        bins = 200
+        delDNN = dDNN - dTrue
         if dEXO is not None:
-            hist_delEXO, bin_edges, _ = plt.hist(delEXO, bins=bins, range=(-limit, limit), density=True, facecolor='red',
-                                                 alpha=0.6, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % (
-                'EXO:', np.mean(delEXO), np.std(delEXO)))
-        hist_delDNN, bin_edges, _ = plt.hist(delDNN, bins=bins, range=(-limit, limit), density=True, facecolor='blue',
-                                         alpha=0.6, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % (
-            'DNN:', np.mean(delDNN), np.std(delDNN)))
 
-    #   Gauss Fit
-    # bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
-    # from scipy.optimize import curve_fit
-    # coeff_DNN, var_matrix_DNN = curve_fit(gauss_zero, bin_centres, hist_delDNN)
-    # coeff_EXO, var_matrix_EXO = curve_fit(gauss_zero, bin_centres, hist_delEXO)
-    #
-    # print 'DNN:'
-    # print coeff_DNN
-    # print var_matrix_DNN
-    # print 'EXO:'
-    # print coeff_EXO
-    # print var_matrix_EXO
-    # plt.plot(bin_centres, gauss_zero(bin_centres, *coeff_DNN), ls='--', color='blue', label=r'$\sigma_{DNN}$ = %.2f' % coeff_DNN[2])
-    # plt.plot(bin_centres, gauss_zero(bin_centres, *coeff_EXO), ls='--', color='red', label=r'$\sigma_{EXO}$ = %.2f' % coeff_EXO[2])
+            delEXO = dEXO - dTrue
+            mask_range_EXO = delEXO < 100
+            mask_range_EXO = np.logical_and(mask_range_EXO, delEXO > -200)
+            delEXO = delEXO[mask_range_EXO]
 
-    plt.title(title)
-    plt.xlabel('Residual (prediction - %s)' % (name_True))
-    plt.ylabel('Probability')
-    if limit == 100:
-        plt.gca().set_yscale('log')
+        mask_range_DNN = delDNN < 100
+        mask_range_DNN = np.logical_and(mask_range_DNN, delDNN > -200)
+        delDNN = delDNN[mask_range_DNN]
 
-    plt.legend(loc="best", prop={'size': 13})
-    plt.xlim(xmin=-limit, xmax=limit)
-    # plt.ylim(ymin=0.0, ymax=0.1)
-    # plt.grid(True)
-    plt.savefig(fOUT, bbox_inches='tight')
-    plt.clf()
-    plt.close()
+        bins = 200
+        if limit == 100:
+
+
+            if dEXO is not None:
+                hist_delEXO, bin_edges, _ = plt.hist(delEXO, bins=bins, range=(-200, 100), density=False, histtype='stepfilled',color=(1., 0.49803922, 0.05490196), alpha=0.4, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('EXO:', np.mean(delEXO), np.std(delEXO)))
+
+            if np.mean(delDNN) > -0.005 and np.mean(delDNN) < 0.0:
+                hist_delDNN, bin_edges, _ = plt.hist(delDNN, bins=bins, range=(-200, 100), density=False, histtype='stepfilled',color=(0, 0.2, 0.4), alpha=0.5, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$'%('DNN:', 0.0, np.std(delDNN)))
+            else:
+                hist_delDNN, bin_edges, _ = plt.hist(delDNN, bins=bins, range=(-200, 100), density=False,histtype='stepfilled', color=(0, 0.2, 0.4), alpha=0.5, label='%s\n$\mu=%.1f$\n$ \sigma=%.1f$' % ('DNN:', np.mean(delDNN), np.std(delDNN)))
+
+        else:
+            bins = 200
+            if np.mean(delEXO) > -0.005 and np.mean(delEXO) < 0.0:
+                hist_delEXO, bin_edges, _ = plt.hist(delEXO, bins=bins, range=(-limit, limit), density=True, color=(1., 0.49803922, 0.05490196), alpha=0.4, histtype='stepfilled',
+                                                     label='%s\n$\mu=%.2f$\n$ \sigma=%.2f$' % ('EXO:', 0.00, np.std(delEXO)))
+            else:
+                hist_delEXO, bin_edges, _ = plt.hist(delEXO, bins=bins, range=(-limit, limit), density=True,color=(1., 0.49803922, 0.05490196), alpha=0.4, histtype='stepfilled',
+                                                     label='%s\n$\mu=%.2f$\n$ \sigma=%.2f$' % ('EXO:', np.mean(delEXO), np.std(delEXO)))
+            if np.mean(delDNN) > -0.005 and np.mean(delDNN) < 0.0:
+                hist_delDNN, bin_edges, _ = plt.hist(delDNN, bins=bins, range=(-limit, limit), density=True, color=(0, 0.2, 0.4), alpha=0.5, histtype='stepfilled',
+                                                    label='%s\n$\mu=%.2f$\n$ \sigma=%.2f$' % ('DNN:', 0.00, np.std(delDNN)))
+            else:
+                hist_delDNN, bin_edges, _ = plt.hist(delDNN, bins=bins, range=(-limit, limit), density=True, color=(0, 0.2, 0.4), alpha=0.5, histtype='stepfilled',
+                                                     label='%s\n$\mu=%.2f$\n$ \sigma=%.2f$' % ('DNN:', np.mean(delDNN), np.std(delDNN)))
+
+        plt.xlabel('Residual ' + title + ' [keV]')
+        plt.ylabel('Probability density')
+        # if limit == 100:
+        #     plt.gca().set_yscale('log')
+
+        plt.legend(loc="upper left")
+        plt.xlim(xmin=-200, xmax=100)
+        plt.savefig(fOUT, bbox_inches='tight')
+        plt.clf()
+        plt.close()
     return
 
 
@@ -1355,48 +1710,122 @@ def plot_scatter(E_x, E_y, name_x, name_y, fOUT, alpha=1):
     return
 
 
-def plot_hexbin(E_x, E_y, DNN, EXO, name_x, name_y, fOUT):
-    xmin = E_x.min()-5
-    xmax = E_x.max()+5
-    ymin = E_y.min()-5
-    ymax = E_y.max()+5
+class MidpointNormalize(colors.Normalize):
+    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+        self.midpoint = midpoint
+        colors.Normalize.__init__(self, vmin, vmax, clip)
 
-    fig, axes = plt.subplots(ncols=2)#, figsize=(7,3))
-
-    num_bins = 10
-
-    # fig.subplots_adjust(hspace=0.5, left=0.07, right=0.93)
-    ax = axes[0]
-    im = ax.hexbin(E_x, E_y, C=DNN, cmap='RdBu_r', linewidths=0.1, gridsize=num_bins, norm=colors.SymLogNorm(linthresh=0.03, linscale=0.03))
-
-    # axScatter.hexbin(delEXO[mask_limit], delDNN[mask_limit], gridsize=gridsize, mincnt=1,  # norm=colors.Normalize(),
-    #        cmap=plt.get_cmap('viridis'), linewidths=0.1, bins='log')
-
-    ax = axes[1]
-    im = ax.hexbin(E_x, E_y, C=EXO, cmap='RdBu_r', linewidths=0.1, gridsize=bins)
-    ax.axis([xmin, xmax, ymin, ymax])
-    # ax.set_title("Hexagon binning")
-    cb = fig.colorbar(im, ax=ax)
-    cb.set_label('energy residual')
+    def __call__(self, value, clip=None):
+        # I'm ignoring masked values and all kinds of edge cases to make a
+        # simple example...
+        x, y = [-self.vmax, self.midpoint, self.vmax], [0, 0.5, 1]
+        return np.ma.masked_array(np.interp(value, x, y))
 
 
+def plot_hexbin(X_true, Y_true, Z_true, DNN, EXO, name_x, name_y, fOUT):
+    from matplotlib.ticker import NullFormatter
+    nullfmt = NullFormatter()
 
-    # hb = plt.hexbin(E_x, E_y, C=E_z, mincnt=1, cmap='viridis')
-    # plt.plot(diag, diag, 'k--')
-    # plt.legend(loc="best")
-    axes[0].set_xlabel('%s' % (name_x))
-    axes[0].set_ylabel('%s' % (name_y))
-    # plt.xlim(xmin=600, xmax=3300)
-    # plt.ylim(ymin=600, ymax=3300)
-    # plt.grid(True)
+    plt.rc('font', size=35)
 
-    # cb = plt.colorbar(hb, ax=ax)
-    # cb.set_label('counts')
+    xmin = X_true.min() - 10
+    xmax = X_true.max() + 10
+    ymin = Y_true.min() - 10
+    ymax = Y_true.max() + 10
+    zmin = Z_true.min() - 10
+    zmax = Z_true.max() + 10
+
+    fig, axes = plt.subplots(2, 2, sharex=True, figsize=(25, 25))  # , gridspec_kw={'height_ratios': [3, 1]})
+    axes[0, 0].set(aspect='auto')#, adjustable='box-forced')
+    axes[1, 0].set(aspect='auto')#, adjustable='box-forced')
+    axes[0, 1].set(aspect='auto')#, adjustable='box-forced')
+    axes[1, 1].set(aspect='auto')#, adjustable='box-forced')
+
+    axes[0, 0].axis([xmin, xmax, zmin, zmax])
+    axes[0, 1].axis([xmin, xmax, zmin, zmax])
+    axes[1, 0].axis([xmin, xmax, ymin, ymax])
+    axes[1, 1].axis([xmin, xmax, ymin, ymax])
+
+    num_bins = 50
+    vmax = 60
+
+    ax = axes[0, 0]
+    ax.set_title('DNN')
+    im = ax.hexbin(X_true, Z_true, C=DNN, cmap='viridis', linewidths=0.1, gridsize=num_bins,
+                   reduce_C_function=np.std, vmin=0., vmax=vmax)
+
+    ax = axes[0, 1]
+    ax.set_title('EXO')
+    im = ax.hexbin(X_true, Z_true, C=EXO, cmap='viridis', linewidths=0.1, gridsize=num_bins,
+                   reduce_C_function=np.std, vmin=0., vmax=vmax)
+
+    ax = axes[1, 0]
+    # ax.set_title('DNN')
+    im = ax.hexbin(X_true, Y_true, C=DNN, cmap='viridis', linewidths=0.1, gridsize=num_bins,
+                   reduce_C_function=np.std, vmin=0., vmax=vmax)
+
+    ax = axes[1, 1]
+    # ax.set_title('EXO')
+    im = ax.hexbin(X_true, Y_true, C=EXO, cmap='viridis', linewidths=0.1, gridsize=num_bins,
+                   reduce_C_function=np.std, vmin=0., vmax=vmax)
+
+    fig.subplots_adjust(right=0.9)
+    cbar_ax = fig.add_axes([0.91, 0.15, 0.02, 0.65])
+    fig.colorbar(im, cax=cbar_ax)
+    cbar_ax.set_ylabel('Energy resolution [keV]')
+
+    axes[1, 0].set_xlabel('%s' % (name_x))
+    axes[1, 1].set_xlabel('%s' % (name_x))
+    axes[0, 0].set_ylabel('Z [mm]')
+    axes[1, 0].set_ylabel('Y [mm]')
+
+    plt.subplots_adjust(hspace=0.02)
+    plt.subplots_adjust(wspace=0.02)
+
+    axes[0, 1].yaxis.set_major_formatter(nullfmt)
+    axes[1, 1].yaxis.set_major_formatter(nullfmt)
 
     plt.savefig(fOUT, bbox_inches='tight')
     plt.clf()
     plt.close()
     return
+
+    # xmin = E_x.min()-10
+    # xmax = E_x.max()+10
+    # ymin = E_y.min()-10
+    # ymax = E_y.max()+10
+    # fig, axes = plt.subplots(1, 2, sharey=True, figsize=(25, 10))#, gridspec_kw={'height_ratios': [3, 1]})
+    # axes[0].set(aspect='equal', adjustable='box-forced')
+    # axes[1].set(aspect='equal', adjustable='box-forced')
+    # num_bins = 80
+    #
+    # ax = axes[0]
+    # ax.set_title('DNN')
+    # # im = ax.hexbin(E_x, E_y, C=DNN, cmap='RdBu_r', linewidths=0.1, gridsize=num_bins, norm=MidpointNormalize(midpoint=0.))
+    # im = ax.hexbin(E_x, E_y, C=DNN, cmap='viridis', linewidths=0.1, gridsize=num_bins, reduce_C_function=np.std, bins='log')
+    #
+    # ax = axes[1]
+    # ax.set_title('EXO')
+    # plt.setp(ax.get_yticklabels(), visible=False)
+    # # im = ax.hexbin(E_x, E_y, C=EXO, cmap='RdBu_r', linewidths=0.1, gridsize=num_bins, norm=MidpointNormalize(midpoint=0.))
+    # im = ax.hexbin(E_x, E_y, C=EXO, cmap='viridis', linewidths=0.1, gridsize=num_bins, reduce_C_function=np.std, bins='log')
+    # ax.axis([xmin, xmax, ymin, ymax])
+    #
+    # fig.subplots_adjust(right=0.8)
+    # cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    # fig.colorbar(im, cax=cbar_ax)
+    # cbar_ax.set_label('energy residual')
+    #
+    # axes[0].set_xlabel('%s' % (name_x))
+    # axes[1].set_xlabel('%s' % (name_x))
+    # axes[0].set_ylabel('%s' % (name_y))
+    # plt.savefig(fOUT, bbox_inches='tight')
+    # plt.clf()
+    # plt.close()
+    # return
+
+
+
 
 
 def plot_hist2D(E_x, E_y, name_x, name_y, fOUT):

@@ -13,7 +13,9 @@ path.append('/home/hpc/capm/sn0515/UVWireRecon')
 from utilities import generator as gen
 
 def main():
-    folderIN = '/home/vault/capm/mppi053h/Master/UV-wire/Data/bb0n_WFs_Uni_MC/'
+    plt.rc('font', size=22, family='serif')
+
+    folderIN = '/home/vault/capm/mppi053h/Master/UV-wire/Data/GammaExp_WFs_Uni_MC_SS_new/'
     folderOUT = '/home/vault/capm/mppi053h/Master/UV-wire/Waveforms/'
     files = [os.path.join(folderIN, f) for f in os.listdir(folderIN) if os.path.isfile(os.path.join(folderIN, f))]
     number = 50
@@ -39,6 +41,14 @@ def main():
         # print '>>'
         wf, Y_TRUE, EVENT_INFO = generator.next()
 
+        if EVENT_INFO['CCIsSS'][0] == 1:
+            if EVENT_INFO['CCNumberUWires'] == 1:
+                print 'plot waveform \t', idx
+                print EVENT_INFO.keys()
+                plot_waveforms(np.asarray(wf), idx, folderOUT)
+                idx += 1
+
+
         # print wf
         # print EVENT_INFO.keys()
 
@@ -55,9 +65,8 @@ def main():
 
                     # if max < EVENT_INFO['PCDDepositChannel'][0, 0]: max = EVENT_INFO['PCDDepositChannel'][0, 0]
                     # if min > EVENT_INFO['PCDDepositChannel'][0, 0]: min = EVENT_INFO['PCDDepositChannel'][0, 0]
-        print 'plot waveform \t', idx
-        plot_waveforms(np.asarray(wf), idx, folderOUT)
-        idx += 1
+
+
 
     # plot_wirecheck(wf, idx, folderOUT, EVENT_INFO['PCDDepositChannel'][0, 0], EVENT_INFO['CCCollectionTime'][0, 0])
 
@@ -105,7 +114,7 @@ def plot_wirecheck(wf, idx, folderOUT, depositchannel, time):
     return
 
 def plot_waveforms(wf, idx, folderOUT):
-    time = range(0, 2048)
+    time = range(0, 350)
 
     # xs_i = np.swapaxes(xs_i, 0, 1)
     wf = np.swapaxes(wf, 1, 2)
@@ -116,38 +125,45 @@ def plot_waveforms(wf, idx, folderOUT):
     fig, axarr = plt.subplots(2, 2)
 
     # set size of Figure
-    fig.set_size_inches(w=20., h=8.)
+    fig.set_size_inches(w=20., h=15.)
 
     for i in xrange(wf.shape[0]):
         if i == 0 : x = 1; y = 0
         elif i == 1: x = 0; y = 0
         elif i == 2: x = 1; y = 1
         elif i == 3: x = 0; y = 1
-        axarr[x, y].set_xlim([0.0, 2048])
+        axarr[x, y].set_xlim([0.0, 350])
         axarr[x, y].set_ylim([-40, 780])
         plt.setp(axarr[x, y].get_yticklabels(), visible=False)
         for j in xrange(wf.shape[2]):
             axarr[x, y].plot(time, wf[i, : , j, 0, 0] + 20. * j, color='k')
 
-    axarr[1, 0].set_ylabel(r'Amplitude + offset [a.u.]')
-    axarr[0, 0].set_ylabel(r'Amplitude + offset [a.u.]')
+            # axarr[x, y].plot(time[0:1000], wf[i, 0:1000, j, 0, 0] + 20. * j, color='k', alpha=0.25)
+            # axarr[x, y].plot(time[1000:1400], wf[i, 1000:1400, j, 0, 0] + 20. * j, color='k')
+            # axarr[x, y].plot(time[1400:2048], wf[i, 1400:2048, j, 0, 0] + 20. * j, color='k', alpha=0.25)
+
+    axarr[1, 0].set_ylabel(r'Amplitude [a.u.]')
+    axarr[0, 0].set_ylabel(r'Amplitude [a.u.]')
     axarr[1, 1].set_xlabel(r'Time [$\mu$s]')
     axarr[1, 0].set_xlabel(r'Time [$\mu$s]')
 
-    alpha = 0.3
-
-    axarr[1, 0].fill_between([0,1000], -40, 780, color='red', alpha=alpha)
-    axarr[1, 0].fill_between([1350, 2048], -40, 780, color='red', alpha=alpha)
-    axarr[0, 0].fill_between([0,1000], -40, 780, color='red', alpha=alpha)
-    axarr[0, 0].fill_between([1350, 2048], -40, 780, color='red', alpha=alpha)
-    axarr[1, 1].fill_between([0,1000], -40, 780, color='red', alpha=alpha)
-    axarr[1, 1].fill_between([1350, 2048], -40, 780, color='red', alpha=alpha)
-    axarr[0, 1].fill_between([0,1000], -40, 780, color='red', alpha=alpha)
-    axarr[0, 1].fill_between([1350, 2048], -40, 780, color='red', alpha=alpha)
+    # alpha = 0.9
+    #
+    # axarr[1, 0].fill_between([0,1000], -40, 780, color='white', alpha=alpha)
+    # axarr[1, 0].fill_between([1350, 2048], -40, 780, color='white', alpha=alpha)
+    # axarr[0, 0].fill_between([0,1000], -40, 780, color='white', alpha=alpha)
+    # axarr[0, 0].fill_between([1350, 2048], -40, 780, color='white', alpha=alpha)
+    # axarr[1, 1].fill_between([0,1000], -40, 780, color='white', alpha=alpha)
+    # axarr[1, 1].fill_between([1350, 2048], -40, 780, color='white', alpha=alpha)
+    # axarr[0, 1].fill_between([0,1000], -40, 780, color='white', alpha=alpha)
+    # axarr[0, 1].fill_between([1350, 2048], -40, 780, color='white', alpha=alpha)
 
 
     plt.setp([a.get_xticklabels() for a in axarr[0, :]], visible=False)
     plt.setp([a.get_yticklabels() for a in axarr[:, 1]], visible=False)
+
+    plt.subplots_adjust(hspace=0.02)
+    plt.subplots_adjust(wspace=0.04)
 
     fig.savefig(folderOUT + str(idx) + '.png', bbox_inches='tight')
     plt.close()
